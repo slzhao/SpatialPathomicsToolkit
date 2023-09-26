@@ -1,0 +1,113 @@
+--- 
+title: "20230622_podocyteMorphomics"
+author: "Shilin Zhao<br><small>Department of Biostatistics<br>Vanderbilt University School of Medicine</small>"
+date: "<small>`r Sys.Date()`</small>"
+output:
+  rmdformats::robobook:
+    highlight: kate
+    number_sections: no
+    code_folding: hide
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options:
+  markdown:
+    wrap: 72
+# output:
+#   html_document:
+#     toc: yes
+#     toc_depth: 2
+#     number_sections: true
+#     # toc_float: 
+#     #   collapsed: true
+#     # code_folding: hide
+#     # theme: cerulean
+#     # keep_md: true
+description: "some description ..."
+---
+
+```{css,echo = FALSE}
+.book .book-body .page-inner {
+    max-width: 1200px;
+}
+``` 
+
+```{r setup,echo=FALSE}
+#require(Hmisc)    # provides knitrSet and other functions
+#knitrSet(lang='markdown', fig.path='png/', fig.align='left', w=6.5, h=4.5, cache=TRUE)
+# If using blogdown: knitrSet(lang='blogdown')
+
+
+knitr::opts_chunk$set(echo = FALSE)
+options(width = 3000)
+
+#Hmisc package html Special characters issue
+options(htmlSpecialType='&')
+```
+
+
+<!-- # Functions and packages -->
+
+```{r,message=FALSE,warning=FALSE}
+library(knitr)
+library(tidyverse)
+
+devtools::load_all("D:/source/SpatialPathomicsToolkit")
+```
+
+
+## Load Data
+
+```{r}
+
+dataDir="d:\\workSync\\HaichunYang\\202306_podocyteMorphomics\\202309_data\\"
+setwd(dataDir)
+
+files=list.files(pattern="*.csv")
+samples=gsub("_.*","",files)
+samples=gsub("6793-","",samples)
+celltypes=sapply(strsplit(files,"_"),function(x) x[2])
+
+metaTable=data.frame(Sample=samples,File=files,CellType=celltypes,stringsAsFactors=FALSE)
+featureDataAll=ReadMorphomicFeatures(metaTable)
+
+```
+
+## Data Transformation
+```{r}
+
+temp=DataSelection(featureDataAll,featureType=c("AreaShape","Intensity"))
+featureDataAllNormlized=MorphomicFeaturesNormlization(featureDataAll)
+
+```
+
+
+## Data Describe
+```{r}
+library(Hmisc)
+```
+
+### Raw
+```{r,results='asis'}
+varForTable1=colnames(featureDataAllNormlized[["FeatureData"]])
+s=describe(featureDataAllNormlized[["FeatureData"]][,varForTable1])
+html(s, exclude1=FALSE,  what=c('%'),digits=3, prmsd=TRUE)
+```
+
+### Transformation summary
+```{r}
+print(table(rawDataValuesNormlizedSummary$note))
+```
+
+### After data Transformation
+```{r,results='asis'}
+varForTable1=colnames(featureDataAllNormlized[["FeatureDataNormlized"]])
+s=describe(featureDataAllNormlized[["FeatureDataNormlized"]][,varForTable1])
+html(s, exclude1=FALSE,  what=c('%'),digits=3, prmsd=TRUE)
+```
+
+
+

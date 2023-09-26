@@ -1,0 +1,990 @@
+--- 
+title: "20230622_podocyteMorphomics"
+author: "Shilin Zhao<br><small>Department of Biostatistics<br>Vanderbilt University School of Medicine</small>"
+date: "<small>`r Sys.Date()`</small>"
+output:
+  rmdformats::robobook:
+    highlight: kate
+    number_sections: no
+    code_folding: hide
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options:
+  markdown:
+    wrap: 72
+# output:
+#   html_document:
+#     toc: yes
+#     toc_depth: 2
+#     number_sections: true
+#     # toc_float: 
+#     #   collapsed: true
+#     # code_folding: hide
+#     # theme: cerulean
+#     # keep_md: true
+description: "some description ..."
+---
+
+```{css,echo = FALSE}
+.book .book-body .page-inner {
+    max-width: 1200px;
+}
+``` 
+
+```{r setup,echo=FALSE}
+#require(Hmisc)    # provides knitrSet and other functions
+#knitrSet(lang='markdown', fig.path='png/', fig.align='left', w=6.5, h=4.5, cache=TRUE)
+# If using blogdown: knitrSet(lang='blogdown')
+
+
+knitr::opts_chunk$set(echo = FALSE)
+options(width = 3000)
+
+#Hmisc package html Special characters issue
+options(htmlSpecialType='&')
+```
+
+
+<!-- # Functions and packages -->
+
+```{r,message=FALSE,warning=FALSE}
+library(knitr)
+library(ggplot2)
+library(RColorBrewer)
+library(reshape2)
+library(formattable)
+library(rms)
+library(htmlTable)
+library(tidyverse)
+library(ComplexHeatmap)
+
+source("D:\\source\\r_cqs\\myPkg\\R\\summaryTableHtml.R")
+source("D:\\source\\r_cqs\\myPkg\\R\\HmiscHtmlTableTtestFunction.R")
+
+##PreDefinedForChangingWorkingFolder##
+workDir=file.path(Sys.getenv("WORKDIR",unset="D:/workSync/"),"HaichunYang","202306_podocyteMorphomics")
+#workDir=file.path(Sys.getenv("OneDriveCommercial",unset="D:\\OneDrive - VUMC"),"work")
+
+RDataFile="20230721.RData"
+seuratFiles=c("S7_Seurat.rds","S7_Seurat.rds","S7_Seurat.rds","S7_Seurat.rds","all_Seurat.rds")
+```
+
+## md5sum
+```{r,results='asis'}
+fileMd5=tools::md5sum(c(file.path(workDir,RDataFile),file.path(workDir,seuratFiles)))
+knitr::kable(data.frame(File=names(fileMd5),md5=fileMd5),row.names = FALSE)
+
+```
+
+
+## Load Data
+
+```{r}
+library(Seurat)
+
+setwd(workDir)
+load(RDataFile)
+
+dataObj7=readRDS("S7_Seurat.rds")
+dataObj8=readRDS("S8_Seurat.rds")
+dataObj9=readRDS("S9_Seurat.rds")
+dataObj10=readRDS("S10_Seurat.rds")
+dataObjAll=readRDS("all_Seurat.rds")
+```
+## Perform PCA on all feature types as needed
+```{r}
+for (featureTYpe in Assays(dataObjAll)) {
+  DefaultAssay(dataObjAll)=featureTYpe
+  allFeatures <- rownames(dataObjAll)
+  dataObjAll <- ScaleData(dataObjAll, features = allFeatures)
+  dataObjAll <- RunPCA(dataObjAll, features = allFeatures,reduction.name=paste0("pca_",featureTYpe))
+
+}
+
+
+```
+
+
+
+## Correlation of features
+### Figure 2: all samples, by feature type
+```{r}
+setwd(workDir)
+
+
+for (featureType in Assays(dataObjAll)) {
+  reductionName = paste0("pca_", featureType)
+  featureLoadings = (dataObjAll@reductions[[reductionName]]@feature.loadings)
+  featureLoadingsMaxValue = max(abs(range(featureLoadings[, 1:3])))
+  featureLoadingsColorFun = circlize::colorRamp2(
+    c(-featureLoadingsMaxValue, 0, featureLoadingsMaxValue),
+    c("green", "white", "red")
+  )
+  ha = columnAnnotation(
+    df = data.frame(featureLoadings[, 1:3]),
+    col = list(
+      PC_1 = featureLoadingsColorFun,
+      PC_2 = featureLoadingsColorFun,
+      PC_3 = featureLoadingsColorFun
+    ),
+    annotation_legend_param = list(PC_1 = list(title = "PC")),
+    show_legend = c(TRUE, FALSE, FALSE)
+  )
+  
+  pdf(paste0("20230731_correlation_", featureType, "_heatmap.pdf"))
+  p = Heatmap(
+    cor(t(dataObjAll@assays[[featureType]]@data), method = "sp"),
+    top_annotation = ha,
+    show_row_names = FALSE,
+    show_column_names = FALSE,
+    heatmap_legend_param = list(title = "Correlation")
+  )
+  draw(p,merge_legend = TRUE)
+  dev.off()
+  
+  #Number of features significant to each PC
+  loadingCut = 0.15
+  featureLoadingsSignificant = apply(featureLoadings, 2, function(x)
+    length(which(abs(x) >= loadingCut)))
+  
+  # dataForPlot=data.frame(
+  #   Variance=(dataObjAll@reductions[[reductionName]]@stdev^2)[1:10]/dataObjAll@reductions[[reductionName]]@misc$total.variance,
+  #   Name=factor(paste0("PC_",1:10),levels=(paste0("PC_",1:10)))
+  #   )
+  # p=ggplot(dataForPlot) + geom_col(aes(x=Name,y=Variance))  + theme_bw() + theme(legend.position="none")
+  
+  pdf(paste0("20230803_figure2_", featureType, "_PCs.pdf"),
+      height = 4)
+  dataForPlot = data.frame(
+    Variance = (dataObjAll@reductions[[reductionName]]@stdev ^ 2)[1:10] / dataObjAll@reductions[[reductionName]]@misc$total.variance,
+    Name = factor(paste0("PC_", 1:10), levels = (paste0("PC_", 1:10))),
+    NumberOfFeatures = featureLoadingsSignificant[1:10],
+    PercentOfFeatures = featureLoadingsSignificant[1:10]/nrow(featureLoadings)
+  )
+  # scaling_factor <-
+  #   max(dataForPlot$Variance) / max(dataForPlot$NumberOfFeatures)
+  scaling_factor <-
+    max(dataForPlot$Variance) / max(dataForPlot$PercentOfFeatures)
+  p = ggplot(dataForPlot) +
+    geom_col(aes(x = Name, y = Variance)) +
+    geom_line(
+      aes(
+        x = Name,
+#        y = NumberOfFeatures * scaling_factor,
+        y = PercentOfFeatures * scaling_factor,
+        group = 1
+      ),
+      color = 'red',
+      linewidth = 1
+    ) +
+    scale_y_continuous(sec.axis = sec_axis( ~ . / scaling_factor, name = "Percent of Features")) +
+    labs(y = "Variance Explained", x = "") +
+    theme_bw()
+  plot(
+    p + theme(
+      axis.title = element_text(size = 20),
+      axis.text = element_text(size = 20),
+      axis.text.x = element_text(
+        angle = 90,
+        vjust = 0.5,
+        hjust = 1
+      ),
+      legend.text = element_text(size = 20),
+      legend.title = element_text(size = 20)
+    )
+  )
+  dev.off()
+  
+  #top N most important features
+  topN = 5
+  temp = apply(featureLoadings[, 1:3], 2, function(x)
+    names(sort(abs(x), decreasing = TRUE)[1:topN]))
+  dataForPlot = data.frame(
+    PC = factor(rep(paste0("PC_", 1:3), each = topN), levels = paste0("PC_", 1:3)),
+    Feature = as.vector(temp),
+    Value = c(featureLoadings[(as.vector(temp))[1:5], 1], featureLoadings[(as.vector(temp))[6:10], 2], featureLoadings[(as.vector(temp))[11:15], 3])
+  )
+  #varianceExplained=((dataObjAll@reductions[[reductionName]]@stdev^2)[1:10]/dataObjAll@reductions[[reductionName]]@misc$total.variance)[1:3]
+  #p=plot_PCA_loadings(data.frame(featureLoadings[unique(as.vector(temp)),1:3]),selectedPCs=c("PC_1","PC_2","PC_3"),pcTitle=paste0("PC",1:3," (",as.integer(varianceExplained*100),"%)"))
+  dataForPlot$Feature=gsub(featureType,"",dataForPlot$Feature)
+  dataForPlot$Feature=gsub("^\\.","",dataForPlot$Feature)
+
+  pdf(paste0("20230803_figure2_", featureType, "_PCsLoading.pdf"),
+      height = 4)
+  p = ggplot(dataForPlot) + geom_col(aes(
+    x = Value,
+    y = Feature,
+    fill = factor(sign(Value))
+  )) + facet_grid(PC ~ ., scale = "free") + 
+    xlab("Loading")+
+    theme_bw()
+  plot(
+    p + scale_fill_brewer(palette = "Set1") + theme(
+      axis.title = element_text(size = 20),
+      axis.text = element_text(size = 12),
+      axis.text.x = element_text(
+        angle = 90,
+        vjust = 0.5,
+        hjust = 1
+      ),
+      legend.position = "none",
+      strip.text = element_text(size = 12)
+    )
+  )
+  dev.off()
+}
+
+
+
+
+```
+
+```{r,eval=FALSE}
+
+#test sparsePCA
+library(scPCA)
+spca_sim_p <- elasticnet::spca((dataObjAll@assays[[featureType]]@data), K = 5, para = rep(penalty, 2),
+                     type = "predictor", sparse = "penalty")$loadings
+
+k=5
+featureType="AreaShape"
+penalties <- exp(seq(log(10), log(1000), length.out = 6))
+df_ls <- lapply(penalties, function(penalty) {
+  spca_sim_p <- elasticnet::spca((dataObjAll@assays[[featureType]]@data), K = k, para = rep(penalty, k),
+                     type = "predictor", sparse = "penalty")$loadings
+  spca_sim_p <- as.matrix((dataObjAll@assays[[featureType]]@data)) %*% spca_sim_p
+  spca_out <- list("SPC1" = spca_sim_p[, 1],
+                   "SPC2" = spca_sim_p[, 2],
+                   "penalty" = round(rep(penalty, nrow(toy_df))),
+                   "label"  = as.character(toy_df[, 31])) %>%
+    as_tibble()
+  return(spca_out)
+})
+df <- dplyr::bind_rows(df_ls)
+
+```
+
+### Figure 3: all feature types together, circlize plot
+```{r}
+library(circlize)
+library(tidyverse)
+
+featureTypes1=featureTypes
+names(featureTypes1)=gsub("_",".",names(featureTypes1))
+featureTypeColor=RColorBrewer::brewer.pal(n = length(unique(featureTypes1)), name = "Set1")
+names(featureTypeColor)=unique(featureTypes1)
+
+
+featureDataInAllSamplesScaled=t(scale(t(dataObjAll@assays$Spatial@data)))
+featureDataInAllSamplesScaled=t(apply(featureDataInAllSamplesScaled,1,function(x) tapply(x,dataObjAll@meta.data$Group,mean)))
+colnames(featureDataInAllSamplesScaled)=gsub("DT-AF","DTR+",colnames(featureDataInAllSamplesScaled))
+colnames(featureDataInAllSamplesScaled)=gsub("Normal-AF","WT",colnames(featureDataInAllSamplesScaled))
+
+featureTypesForHeatmap=featureTypes1[row.names(featureDataInAllSamplesScaled)]
+featureTypesForHeatmapData=data.frame(FeatureType=featureTypesForHeatmap)
+row.names(featureTypesForHeatmapData)=gsub("^AreaShape.","",row.names(featureTypesForHeatmapData))
+row.names(featureTypesForHeatmapData)=gsub("^Intensity.","",row.names(featureTypesForHeatmapData))
+row.names(featureTypesForHeatmapData)=gsub("^RadialDistribution.","",row.names(featureTypesForHeatmapData))
+row.names(featureTypesForHeatmapData)=gsub("^Texture.","",row.names(featureTypesForHeatmapData))
+
+#preapre  feature annotation data
+featureCorInAllSamples=cor(t(dataObjAll@assays$Spatial@data),method="sp")
+
+##Number of features correlated
+corCut=0.9
+temp=featureCorInAllSamples
+diag(temp)=0 #remove effect of itself
+featureCorrelationCount=apply(temp,1,function(x) length(which(abs(x)>corCut)))[row.names(featureDataInAllSamplesScaled)]
+
+##Max correlation with other features
+featureCorrelationMaxValue=apply(temp,1,function(x) max(abs(x)))[row.names(featureDataInAllSamplesScaled)]
+
+#correlation pairs
+corCut=0.9
+featureCorrelationPairs=NULL
+for (i in 1:(nrow(temp)-1)) {
+  for (j in (i+1):ncol(temp)) {
+    corOne=temp[i,j]
+    if(abs(corOne)>corCut) {
+      if (featureTypes1[i]!=featureTypes1[j]) { #only keep different type pairs
+          featureCorrelationPairs=rbind(featureCorrelationPairs,c(i,j,corOne,abs(corOne),sign(corOne)))
+      }
+    }
+  }
+}
+
+##Number of related PC loadings
+##Max PC loading (PC1/2/Other)
+featureRelatedPC=structure(rep(NA,nrow(featureDataInAllSamplesScaled)),names=row.names(featureDataInAllSamplesScaled))
+featureMaxPC=structure(rep("",nrow(featureDataInAllSamplesScaled)),names=row.names(featureDataInAllSamplesScaled))
+for (featureType in c("AreaShape","Intensity","RadialDistribution","Texture")) {
+  #featureType="AreaShape"
+  reductionName=paste0("pca_",featureType)
+  featureLoadings = (dataObjAll@reductions[[reductionName]]@feature.loadings)
+  loadingCut = 0.15
+  temp=apply(featureLoadings[,1:10],1,function(x) length(which(abs(x)>=loadingCut)))
+  featureRelatedPC[names(temp)]=temp
+
+  temp=apply(featureLoadings[,1:10],1,function(x) (which(abs(x)>=loadingCut))[1])
+  temp[temp>2]="PC 3-10"
+  temp[temp==1]="PC1"
+  temp[temp==2]="PC2"
+  temp[is.na(temp)]="None"
+  featureMaxPC[names(temp)]=temp
+}
+
+featureDataInAllSamplesScaledAnnotation=data.frame(CorrelationCount=featureCorrelationCount,
+                                                   MaxCorrelation=featureCorrelationMaxValue)
+
+
+col_fun_feature = colorRamp2(c(-1, 0, 1), c("green", "white", "red"))
+col_fun_correlationCount = colorRamp2(c(0, 0, max(featureCorrelationCount)), c("blue", "blue", "yellow"))
+col_fun_correlationMaxValue = colorRamp2(c(0, 0, max(featureCorrelationMaxValue)), c("blue", "blue", "yellow"))
+col_fun_featureRelatedPC = colorRamp2(c(0, 0, max(featureRelatedPC)), c("blue", "blue", "yellow"))
+featurePCColor=RColorBrewer::brewer.pal(n = length(unique(featureMaxPC)), name = "Set1")
+names(featurePCColor)=unique(featureMaxPC)
+
+
+pdf("20230803_circos.pdf",width=9,height = 9)
+#circos.par$circle.margin 
+
+
+circos.clear()
+#par(mar=c(0,0,0,0))
+circos.par(gap.after = c(2, 2, 2, 24))
+par(mar=c(0,0,0,0))
+
+circos.heatmap.initialize(featureDataInAllSamplesScaled, split = featureTypesForHeatmap)
+#par(mar=c(0,0,0,0))
+circos.heatmap(featureTypesForHeatmapData,
+               split=featureTypesForHeatmap,
+               col=featureTypeColor,
+               rownames.side = "out",
+               track.height = 0.02)
+circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+     if(CELL_META$sector.numeric.index == 4) { # the last sector
+        cn = "Feature type"
+        n = 1
+        circos.text(rep(CELL_META$cell.xlim[2], n) + convert_x(1, "mm"),
+            1:n - 0.5, cn,
+            cex = 0.5, adj = c(0, 0.5), facing = "inside")
+     }
+}, bg.border = NA)
+
+circos.heatmap(featureDataInAllSamplesScaled,
+               split=featureTypesForHeatmap,
+               col=col_fun_feature,
+               track.height = 0.1)
+circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+     if(CELL_META$sector.numeric.index == 4) { # the last sector
+        cn = rev(colnames(featureDataInAllSamplesScaled)) #please note the order needs to be reversed as heatmap is from top to bottom and 1:n is from bottom to top
+        n = length(cn)
+        circos.text(rep(CELL_META$cell.xlim[2], n) + convert_x(1, "mm"),
+            1:n - 0.5, cn,
+            cex = 0.5, adj = c(0, 0.5), facing = "inside")
+     }
+}, bg.border = NA)
+
+circos.heatmap(featureCorrelationCount,
+               split=featureTypesForHeatmap,
+               col=col_fun_correlationCount,
+               track.height = 0.02,
+               track.margin=c(0,0.01))
+circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+     if(CELL_META$sector.numeric.index == 4) { # the last sector
+        cn = "# of correlated features"
+        n = 1
+        circos.text(rep(CELL_META$cell.xlim[2], n) + convert_x(1, "mm"),
+            1:n - 0.5, cn,
+            cex = 0.5, adj = c(0, 0.5), facing = "inside")
+     }
+}, bg.border = NA)
+
+circos.heatmap(featureCorrelationMaxValue,
+               split=featureTypesForHeatmap,
+               col=col_fun_correlationMaxValue,
+               track.height = 0.02,
+               track.margin=c(0.01,0))
+circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+     if(CELL_META$sector.numeric.index == 4) { # the last sector
+        cn = "Correlation (Max)"
+        n = 1
+        circos.text(rep(CELL_META$cell.xlim[2], n) + convert_x(1, "mm"), 
+            1:n - 0.5, cn, 
+            cex = 0.5, adj = c(0, 0.5), facing = "inside")
+     }
+}, bg.border = NA)
+
+##NOt showing this now
+# circos.heatmap(featureRelatedPC,
+#                split=featureTypesForHeatmap,
+#                col=col_fun_featureRelatedPC,
+#                track.height = 0.02,
+#                track.margin=c(0,0))
+# circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+#      if(CELL_META$sector.numeric.index == 4) { # the last sector
+#         cn = "contrubuted PCs"
+#         n = 1
+#         circos.text(rep(CELL_META$cell.xlim[2], n) + convert_x(1, "mm"), 
+#             1:n - 0.5, cn, 
+#             cex = 0.5, adj = c(0, 0.5), facing = "inside")
+#      }
+# }, bg.border = NA)
+
+
+circos.heatmap(featureMaxPC,
+               split=featureTypesForHeatmap,
+               col=featurePCColor,
+               rownames.side = "out",
+               track.height = 0.02)
+circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+     if(CELL_META$sector.numeric.index == 4) { # the last sector
+        cn = "Contributing to PC"
+        n = 1
+        circos.text(rep(CELL_META$cell.xlim[2], n) + convert_x(1, "mm"), 
+            1:n - 0.5, cn, 
+            cex = 0.5, adj = c(0, 0.5), facing = "inside")
+     }
+}, bg.border = NA)
+
+#show correlation
+for(i in seq_len(nrow(featureCorrelationPairs))) {
+    circos.heatmap.link(featureCorrelationPairs[i,1],
+                        featureCorrelationPairs[i,2],
+                        col=c("red","green")[featureCorrelationPairs[i,5]]
+                        )
+}
+dev.off()
+
+
+
+#plot legend
+lgd_featureTypeColor = Legend(title = "Feature Type", at = names(featureTypeColor), 
+    legend_gp = gpar(fill = featureTypeColor))
+lgd_col_fun_feature = Legend(title = "Feature Value", col_fun = col_fun_feature)
+lgd_col_fun_correlationCount = Legend(title = "# of correlated features", col_fun = col_fun_correlationCount)
+lgd_col_fun_correlationMaxValue = Legend(title = "Correlation (Max)", col_fun = col_fun_correlationMaxValue)
+lgd_featurePCColor = Legend(title = "Contributing to PC", at = names(featurePCColor), 
+    legend_gp = gpar(fill = featurePCColor))
+
+lgd_list = packLegend(lgd_featureTypeColor,lgd_col_fun_feature, 
+                      lgd_col_fun_correlationCount,lgd_col_fun_correlationMaxValue, 
+                      lgd_featurePCColor)
+
+pdf("20230803_circosLegend.pdf",width=4)
+draw(lgd_list)
+dev.off()
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+### PCs across samples/groups
+```{r}
+#DimHeatmap(dataObjAll, dims = 1:5, cells = 500, balanced = TRUE,reduction=reductionName )
+
+dataObjAll@meta.data$Group2=ifelse(dataObjAll@meta.data$Group %in% c("DT-AF-7","DT-AF-8"),"DT","Normal")
+pValueAll=NULL
+cellPCsAll=NULL
+for (featureType in c("AreaShape","Intensity","RadialDistribution","Texture")) {
+  #featureType="AreaShape"
+  reductionName=paste0("pca_",featureType)
+  cellPCs=dataObjAll@reductions[[reductionName]]@cell.embeddings
+  
+  i=1:5
+  cellPCsAll=cbind(cellPCsAll,cellPCs[,i])
+  
+  # par(mfrow=c(3,3))
+  # for (i in 1:5) {
+  #   boxplot(cellPCs[,i]~dataObjAll@meta.data$Group)
+  #   pValueOne=t.test(cellPCs[,i]~dataObjAll@meta.data$Group2)$p.value
+  #   pValueAll=rbind(pValueAll,c(featureType,i,pValueOne))
+  # }
+}
+
+testPValue=apply(cellPCsAll,2,function(x) t.test(x~dataObjAll@meta.data$Group2)$p.value)
+testPValueAdj=p.adjust(testPValue,method="BH")
+sort(testPValueAdj)
+         # pca_areashape_1            pca_texture_2          pca_intensity_3          pca_intensity_4 pca_radialdistribution_2            pca_texture_5          pca_intensity_1 pca_radialdistribution_1 pca_radialdistribution_3 pca_radialdistribution_5 
+         #    2.884896e-06             1.108091e-05             2.239646e-04             3.611190e-03             1.731190e-01             2.026230e-01             2.055612e-01             2.096230e-01             2.783010e-01             2.783010e-01 
+         # pca_areashape_4            pca_texture_1 pca_radialdistribution_4            pca_texture_4          pca_areashape_2          pca_intensity_2          pca_areashape_5          pca_intensity_5          pca_areashape_3            pca_texture_3 
+         #    3.262700e-01             3.344575e-01             4.248123e-01             4.264442e-01             4.478503e-01             5.076739e-01   
+
+ha=columnAnnotation(Sample=dataObjAll@meta.data$Group,Group=dataObjAll@meta.data$Group2)
+Heatmap(t(cellPCsAll),show_column_names = FALSE,top_annotation = ha)
+Heatmap(t(cellPCsAll),show_column_names = FALSE,top_annotation = ha,column_split  =(dataObjAll@meta.data$Group2 ))
+
+
+Heatmap(t(cellPCsAll[,c("pca_areashape_1","pca_texture_2","pca_intensity_3","pca_intensity_4")]),show_column_names = FALSE,top_annotation = ha)
+Heatmap(t(cellPCsAll[,c("pca_areashape_1","pca_texture_2","pca_intensity_3","pca_intensity_4")]),show_column_names = FALSE,top_annotation = ha,column_split  =(dataObjAll@meta.data$Group2 ))
+
+
+
+reductionType=paste0("pca_Texture");i=2
+temp=row.names(dataObjAll@reductions[[reductionType]]@feature.loadings)[which(abs(dataObjAll@reductions[[reductionType]]@feature.loadings[,i])>=loadingCut)]
+
+sampleOrder=order(dataObjAll@reductions[[reductionType]]@cell.embeddings[,i])
+
+ha=columnAnnotation(Sample=dataObjAll@meta.data$Group[sampleOrder],Group=dataObjAll@meta.data$Group2[sampleOrder])
+Heatmap(t(scale(t(dataObjAll@assays$Spatial@data[temp,sampleOrder]))),
+        cluster_rows = FALSE,cluster_columns = FALSE,
+        show_column_names = FALSE,top_annotation = ha)
+
+#plot(dataObjAll@reductions[[reductionType]]@cell.embeddings[,i])
+
+#saveRDS(cellPCsAll,"20230803_cellPCsAll.rds")
+#boxplot to show differential features
+textSize=1.6
+pdf("20230803_DiffPCsBoxplot.pdf",width=11,height=3)
+par(mfrow=c(1,4))
+par(mar=c(12,6,3,1))
+boxplot(cellPCsAll[,"pca_areashape_1"]~dataObjAll@meta.data$Group,col=c("#c71d24","#ff5a5f","#5c8001","#7bb517"),xlab="",ylab="Value",main="AreaShape PC1",las=2,cex.axis=textSize,cex.lab=textSize,cex.title=textSize)
+boxplot(cellPCsAll[,"pca_texture_2"]~dataObjAll@meta.data$Group,col=c("#c71d24","#ff5a5f","#5c8001","#7bb517"),xlab="",ylab="Value",main="Texture PC2",las=2,cex.axis=textSize,cex.lab=textSize,cex.title=textSize)
+boxplot(cellPCsAll[,"pca_intensity_3"]~dataObjAll@meta.data$Group,col=c("#c71d24","#ff5a5f","#5c8001","#7bb517"),xlab="",ylab="Value",main="Intensity PC3",las=2,cex.axis=textSize,cex.lab=textSize,cex.title=textSize)
+boxplot(cellPCsAll[,"pca_intensity_4"]~dataObjAll@meta.data$Group,col=c("#c71d24","#ff5a5f","#5c8001","#7bb517"),xlab="",ylab="Value",main="Intensity PC4",las=2,cex.axis=textSize,cex.lab=textSize,cex.title=textSize)
+dev.off()
+
+
+
+```
+
+
+## Subset object to show differential PCs
+```{r}
+
+#saveRDS(dataObjAll,"20230803_dataObjAll.rds")
+
+dataObjAllSubset7=subset(dataObjAll, subset = Group == 'DT-AF-7')
+dataObjAllSubset8=subset(dataObjAll, subset = Group == 'DT-AF-8')
+dataObjAllSubset9=subset(dataObjAll, subset = Group == 'Normal-AF-9')
+dataObjAllSubset10=subset(dataObjAll, subset = Group == 'Normal-AF-10')
+
+
+ptSize=7
+SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
+
+p1=SpatialFeaturePlot(dataObjAllSubset7,"pcaareashape_1",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-15, 10), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('DT-AF-7')
+p2=SpatialFeaturePlot(dataObjAllSubset8,"pcaareashape_1",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-15, 10), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('DT-AF-8')
+p3=SpatialFeaturePlot(dataObjAllSubset9,"pcaareashape_1",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-15, 10), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('Normal-AF-9')
+p4=SpatialFeaturePlot(dataObjAllSubset10,"pcaareashape_1",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-15, 10), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('Normal-AF-10')
+#p1+p2+p3+p4
+pdf("20230803_DiffPCsSpatialPlot1.pdf",width=11,height=3)
+wrap_plots(p1,p2,p3,p4,nrow=1)
+dev.off()
+
+p1=SpatialFeaturePlot(dataObjAllSubset7,"pcatexture_2",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-10, 5), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('DT-AF-7')
+p2=SpatialFeaturePlot(dataObjAllSubset8,"pcatexture_2",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-10, 5), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('DT-AF-8')
+p3=SpatialFeaturePlot(dataObjAllSubset9,"pcatexture_2",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-10, 5), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('Normal-AF-9')
+p4=SpatialFeaturePlot(dataObjAllSubset10,"pcatexture_2",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-10, 5), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('Normal-AF-10')
+#p1+p2+p3+p4
+pdf("20230803_DiffPCsSpatialPlot2.pdf",width=11,height=3)
+wrap_plots(p1,p2,p3,p4,nrow=1)
+dev.off()
+
+p1=SpatialFeaturePlot(dataObjAllSubset7,"pcaintensity_3",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-3, 3), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('DT-AF-7')
+p2=SpatialFeaturePlot(dataObjAllSubset8,"pcaintensity_3",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-3, 3), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('DT-AF-8')
+p3=SpatialFeaturePlot(dataObjAllSubset9,"pcaintensity_3",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-3, 3), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('Normal-AF-9')
+p4=SpatialFeaturePlot(dataObjAllSubset10,"pcaintensity_3",pt.size=ptSize)+
+scale_fill_gradientn(limits=c(-3, 3), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('Normal-AF-10')
+#p1+p2+p3+p4
+pdf("20230803_DiffPCsSpatialPlot3.pdf",width=11,height=3)
+wrap_plots(p1,p2,p3,p4,nrow=1)
+dev.off()
+
+p1=SpatialFeaturePlot(dataObjAllSubset7,"pcaintensity_4",pt.size=ptSize) +
+scale_fill_gradientn(limits=c(-3, 3), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('DT-AF-7')
+p2=SpatialFeaturePlot(dataObjAllSubset8,"pcaintensity_4",pt.size=ptSize) +
+scale_fill_gradientn(limits=c(-3, 3), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('DT-AF-8')
+p3=SpatialFeaturePlot(dataObjAllSubset9,"pcaintensity_4",pt.size=ptSize) +
+scale_fill_gradientn(limits=c(-3, 3), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('Normal-AF-9')
+p4=SpatialFeaturePlot(dataObjAllSubset10,"pcaintensity_4",pt.size=ptSize) +
+scale_fill_gradientn(limits=c(-3, 3), colours=SpatialColors(n=100))+theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+ggtitle('Normal-AF-10')
+#p1+p2+p3+p4
+pdf("20230803_DiffPCsSpatialPlot4.pdf",width=11,height=3)
+wrap_plots(p1,p2,p3,p4,nrow=1)
+dev.off()
+
+
+
+library(ape)
+dataObjAllDists <- as.matrix(dist(dataObjAll@images[[1]]@coordinates))
+
+dataObjAllDists.inv <- 1/dataObjAllDists
+diag(dataObjAllDists.inv) <- 0
+ 
+dataObjAllDists.inv[1:5, 1:5]
+Moran.I(dataObjAll@reductions[["pca_AreaShape"]]@cell.embeddings[,1], dataObjAllDists.inv) # 0.02167522; 5.134077e-05
+Moran.I(dataObjAll@reductions[["pca_Texture"]]@cell.embeddings[,2], dataObjAllDists.inv) #0.01879923; 0.0004088301
+Moran.I(dataObjAll@reductions[["pca_Intensity"]]@cell.embeddings[,3], dataObjAllDists.inv) #0.02003562; 0.0001728316
+Moran.I(dataObjAll@reductions[["pca_Intensity"]]@cell.embeddings[,4], dataObjAllDists.inv) #0.006100233; 0.2084193
+
+
+# moransI(dataObjAll@images[[1]]@coordinates,6,dataObjAll@reductions[["pca_AreaShape"]]@cell.embeddings[,1])
+# moransI(dataObjAll@images[[1]]@coordinates,6,dataObjAll@reductions[["pca_Texture"]]@cell.embeddings[,2])
+# moransI(dataObjAll@images[[1]]@coordinates,6,dataObjAll@reductions[["pca_Intensity"]]@cell.embeddings[,3])
+# moransI(dataObjAll@images[[1]]@coordinates,6,dataObjAll@reductions[["pca_Intensity"]]@cell.embeddings[,4])
+
+```
+
+
+
+
+
+#Not Using these
+
+## Test: get figure from orginal data
+```{r}
+spatialDataDir="D:\\workSync\\Spatial\\202111_Fogo6793\\"
+sampleObjList=list()
+selectedSamples=c("6793-AF-7","6793-AF-8","6793-AF-9","6793-AF-10")
+for (sampleName in selectedSamples) {
+    sampleObjList[[sampleName]]=Load10X_Spatial(data.dir = paste0(spatialDataDir,"/",sampleName,"/outs/"),slice  = sampleName)
+}
+
+Read10X_Image(data.dir = paste0(spatialDataDir,"/",sampleName,"/outs/"),slice  = sampleName)
+
+dataObjAllSubset7@images[[1]]@image=sampleObjList[["6793-AF-7"]]@images[[1]]@image
+```
+
+
+
+
+### Figure 3: all feature types together, all samples, to show top correlation pairs
+```{r}
+featureTypes1=featureTypes
+names(featureTypes1)=gsub("_",".",names(featureTypes1))
+featureTypeColor=RColorBrewer::brewer.pal(n = length(unique(featureTypes1)), name = "Set1")
+names(featureTypeColor)=unique(featureTypes1)
+ha=columnAnnotation(FeatureType=featureTypes1[rownames(dataObjAll@assays$Spatial@data)],
+               col=list(FeatureType = featureTypeColor)
+    )
+
+featureCorInAllSamples=cor(t(dataObjAll@assays$Spatial@data),method="sp")
+Heatmap(featureCorInAllSamples,top_annotation = ha,
+        show_row_names = FALSE,show_column_names = FALSE,
+          heatmap_legend_param = list(
+    title = "Correlation"
+  ))
+
+#get top correlations
+temp=featureCorInAllSamples
+diag(temp)=0
+which(temp==1,arr.ind = TRUE)
+which(temp==-1,arr.ind = TRUE)
+#temp[c(9,24,63),1:2]
+#plot(dataObjAll@assays$Spatial@data["AreaShape.Area",],dataObjAll@assays$Spatial@data[c("AreaShape.CentralMoment.0.0"),])
+
+temp[temp==1]=0
+temp[temp==min(temp)]=0
+max(temp)
+which(temp==max(temp),arr.ind = TRUE)
+min(temp)
+which(temp==min(temp),arr.ind = TRUE)
+
+
+corCut=0.9
+temp=featureCorInAllSamples
+diag(temp)=0
+temp[abs(temp)<corCut]=0
+featureToRemove=which(apply(temp,1,function(x) max(abs(x))==0))
+diag(temp)=1
+
+ha=columnAnnotation(FeatureType=featureTypes1[rownames(dataObjAll@assays$Spatial@data)[-featureToRemove]],
+               col=list(FeatureType = featureTypeColor)
+    )
+Heatmap(temp[-featureToRemove,-featureToRemove],top_annotation = ha,
+        #show_row_names = FALSE,show_column_names = FALSE,
+          heatmap_legend_param = list(
+    title = "Correlation"
+  ))
+
+```
+
+### Figure 2: Overall Correlation
+```{r}
+temp=featureCorInAllSamples
+diag(temp)=NA
+dataForPlot=data.frame(
+  Correlation=as.vector(temp),
+  FeatureName=row.names(temp),
+  FeatureToName=rep(colnames(temp),each=nrow(temp))
+  )
+dataForPlot$FeatureType=featureTypes1[dataForPlot$FeatureName]
+dataForPlot$FeatureToType=featureTypes1[dataForPlot$FeatureToName]
+dataForPlot$CorrelationType=ifelse(dataForPlot$FeatureType==dataForPlot$FeatureToType,"Same","Different")
+
+#hist(featureCorInAllSamples)
+ggplot(dataForPlot)+geom_histogram(aes(x=Correlation,fill=FeatureType))+theme_bw()+scale_fill_brewer(palette = "Set1")
+p=ggplot(dataForPlot)+geom_histogram(aes(x=Correlation,fill=CorrelationType))+theme_bw()+scale_fill_brewer(palette = "Set1")
+
+pdf(paste0("20230731_correlation","_hist.pdf"))
+plot(p+scale_fill_brewer(palette = "Set1")+theme(
+  axis.title = element_text(size = 20),
+        axis.text = element_text(size = 20),
+        legend.text = element_text(size = 20),
+        legend.title = element_text(size = 20)))
+dev.off()
+
+#list of pairs with highest correlation
+dataForPlot %>% filter(CorrelationType!="Same") %>% arrange(desc(Correlation)) %>% head(10)
+
+```
+
+
+
+
+### Figure 2: Pairs
+```{r}
+temp=featureCorInAllSamples
+diag(temp)=NA
+featureToMaxAbs=(apply(temp,1,function(x) max(abs(x),na.rm=TRUE)))
+
+dataForPlot=data.frame(
+  Feature=rownames(dataObjAll@assays$Spatial@data),
+  Correlation=featureToMaxAbs,
+  FeatureType=featureTypes1[rownames(dataObjAll@assays$Spatial@data)]
+)
+p=ggplot(dataForPlot)+geom_histogram(aes(x=Correlation,fill=FeatureType),bins =10)+theme_bw()+scale_fill_brewer(palette = "Set1")
+
+
+pdf(paste0("20230731_correlation","_maxPairHist.pdf"))
+plot(p+scale_fill_brewer(palette = "Set1")+theme(
+  axis.title = element_text(size = 20),
+        axis.text = element_text(size = 20),
+        legend.text = element_text(size = 20),
+        legend.title = element_text(size = 20)))
+dev.off()
+
+
+
+
+#list of pairs with low correlations with others
+selectedFeatures=names(head(sort(featureToMaxAbs),6))
+t(apply(temp[,selectedFeatures],2,function(x) c(quantile(x,c(0.25,0.5,0.75),na.rm=TRUE))))
+
+
+
+
+```
+
+
+
+
+
+### all feature types together, each sample, to show changes
+```{r}
+featureCorInSample7=(cor(t(dataObj7@assays$Spatial@data),method="sp"))
+featureCorInSample8=(cor(t(dataObj8@assays$Spatial@data),method="sp"))
+featureCorInSample9=(cor(t(dataObj9@assays$Spatial@data),method="sp"))
+featureCorInSample10=(cor(t(dataObj10@assays$Spatial@data),method="sp"))
+
+
+# Heatmap(featureCorInSample7-featureCorInSample9,show_row_names = FALSE,show_column_names = FALSE)
+# Heatmap(featureCorInSample8-featureCorInSample9,show_row_names = FALSE,show_column_names = FALSE)
+# Heatmap(featureCorInSample10-featureCorInSample9,show_row_names = FALSE,show_column_names = FALSE)
+
+
+temp1=(featureCorInSample7-featureCorInSample9)
+length(which(abs(temp1)>=0.35,arr.ind = TRUE))
+temp2=(featureCorInSample8-featureCorInSample9)
+length(which(abs(temp2)>=0.35,arr.ind = TRUE))
+temp3=(featureCorInSample10-featureCorInSample9)
+length(which(abs(temp3)>=0.35,arr.ind = TRUE))
+
+dataForPlot=rbind(
+  data.frame(
+  Correlation=as.vector(temp1),
+  FeatureName=row.names(temp1),
+  FeatureToName=rep(colnames(temp1),each=nrow(temp1)),
+  Type="Disease Subject 7 vs Normal Subject 9"
+  ),
+  data.frame(
+  Correlation=as.vector(temp2),
+  FeatureName=row.names(temp2),
+  FeatureToName=rep(colnames(temp2),each=nrow(temp2)),
+  Type="Disease Subject 8 vs Normal Subject 9"
+  ),
+  data.frame(
+  Correlation=as.vector(temp3),
+  FeatureName=row.names(temp3),
+  FeatureToName=rep(colnames(temp3),each=nrow(temp3)),
+  Type="Normal Subject 10 vs Normal Subject 9"
+  )
+)
+
+p=ggplot(dataForPlot)+geom_freqpoly(aes(x=Correlation,color=Type),linewidth=2)+theme_bw()
+
+pdf(paste0("20230731_correlation","_ChangesDensity.pdf"),width=5)
+plot(p+theme(axis.title = element_text(size = 20),
+        axis.text = element_text(size = 20),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 20),
+        legend.position = "bottom",
+      legend.direction="vertical"))
+dev.off()
+
+
+
+# plot(density(as.vector(featureCorInSample7)),col=1)
+# lines(density(as.vector(featureCorInSample8)),col=1)
+# lines(density(as.vector(featureCorInSample9)),col=3)
+# lines(density(as.vector(featureCorInSample10)),col=4)
+
+#list of pairs with most changed correlations
+temp=NULL
+for (i in 1:nrow(dataForPlot)) {
+  temp=rbind(temp,
+             c(featureCorInSample7[dataForPlot$FeatureName[i],dataForPlot$FeatureToName[i]],
+    featureCorInSample8[dataForPlot$FeatureName[i],dataForPlot$FeatureToName[i]],
+    featureCorInSample9[dataForPlot$FeatureName[i],dataForPlot$FeatureToName[i]],
+    featureCorInSample10[dataForPlot$FeatureName[i],dataForPlot$FeatureToName[i]]
+    )
+    )
+}
+colnames(temp)=paste0(c("Sample"),7:10)
+dataForPlot=data.frame(dataForPlot,temp)
+
+dataForPlot %>% filter(abs(Sample9)>=0.4 & abs(Sample10)>=0.4 & abs(Correlation)>=0.4)
+
+
+which(temp2==min(temp2),arr.ind = TRUE)
+#                                      row col
+# Intensity.LowerQuartileIntensity.DNA 107  45
+# AreaShape.MinFeretDiameter            45 107
+plot(t(dataObj7@assays$Spatial@data[c("Intensity.LowerQuartileIntensity.DNA","AreaShape.MinFeretDiameter"),]))
+plot(t(dataObj8@assays$Spatial@data[c("Intensity.LowerQuartileIntensity.DNA","AreaShape.MinFeretDiameter"),]))
+plot(t(dataObj9@assays$Spatial@data[c("Intensity.LowerQuartileIntensity.DNA","AreaShape.MinFeretDiameter"),]))
+plot(t(dataObj10@assays$Spatial@data[c("Intensity.LowerQuartileIntensity.DNA","AreaShape.MinFeretDiameter"),]))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+Heatmap(cor(t(dataObjAll@assays$AreaShape@data),method="sp"))
+#Heatmap(cor(t(dataObj7@assays$AreaShape@data),method="sp"))
+
+Heatmap(cor(t(dataObjAll@assays$Texture@data),method="sp"))
+Heatmap(cor(t(dataObjAll@assays$RadialDistribution@data),method="sp"))
+Heatmap(cor(t(dataObjAll@assays$Intensity@data),method="sp"))
+
+
+
+ha=columnAnnotation(Sample=rawDataIds$Group)
+Heatmap(cor(t(rawDataValuesNormlizedScaled),method="sp"),top_annotation = ha)
+
+rawDataValuesNormlizedScaled=scale(rawDataValuesNormlized)
+
+```
+
+
+
+## PCA of features
+### all samples, by feature type
+```{r}
+dataObjAllProcessed=dataObjAll
+
+DefaultAssay(dataObjAllProcessed)="Spatial"
+allFeatures <- rownames(dataObjAllProcessed)
+dataObjAllProcessed <- ScaleData(dataObjAllProcessed, features = allFeatures)
+dataObjAllProcessed <- RunPCA(dataObjAllProcessed, features = allFeatures)
+
+print(dataObjAllProcessed[["pca"]], dims = 1:5, nfeatures = 5)
+VizDimLoadings(dataObjAllProcessed, dims = 1:4, reduction = "pca")
+
+DimPlot(dataObjAllProcessed, reduction = "pca")
+DimHeatmap(dataObjAllProcessed, dims = 1, cells = 500, balanced = TRUE)
+DimHeatmap(dataObjAllProcessed, dims = 1:15, cells = 500, balanced = TRUE)
+
+dataObjAllProcessed <- JackStraw(dataObjAllProcessed, num.replicate = 100,prop.freq=0.5)
+dataObjAllProcessed <- ScoreJackStraw(dataObjAllProcessed, dims = 1:20)
+JackStrawPlot(dataObjAllProcessed, dims = 1:15)
+
+
+dataObjAllProcessed <- FindNeighbors(dataObjAllProcessed, dims = 1:10)
+dataObjAllProcessed <- FindClusters(dataObjAllProcessed, resolution = 0.5)
+
+dataObjAllProcessed <- RunUMAP(dataObjAllProcessed, dims = 1:10)
+DimPlot(dataObjAllProcessed, reduction = "umap")
+DimPlot(dataObjAllProcessed, reduction = "umap",group.by="Group")
+
+dataObjAllProcessedAllMarkers <- FindAllMarkers(dataObjAllProcessed)
+
+dataObjAllProcessedAllMarkers %>%
+    group_by(cluster) %>%
+    slice_min(n = 10, order_by = p_val) -> top10
+dataObjAllProcessedAllMarkers %>%
+    group_by(cluster) %>%
+    slice_min(n = 5, order_by = p_val) -> top5
+DoHeatmap(dataObjAllProcessed, features = top5$gene) + NoLegend()
+FeaturePlot(dataObjAllProcessed, features = top5$gene)
+
+temp=table(dataObjAllProcessed@meta.data$Group,dataObjAllProcessed@meta.data$Spatial_snn_res.0.5)
+temp/rowSums(temp)
+
+#SpatialDimPlot(dataObjAllProcessed, label=T,repel=T)
+
+
+dataObjAllProcessed@reductions$pcaMerged=dataObjAllProcessed@reductions$pca
+
+dataObjAllProcessed@reductions$pcaMerged@cell.embeddings[,1:20]=dataObjAll@reductions$pca_AreaShape@cell.embeddings[,1:20]
+dataObjAllProcessed@reductions$pcaMerged@cell.embeddings[,21:30]=dataObjAll@reductions$pca_Intensity@cell.embeddings[,1:10]
+dataObjAllProcessed@reductions$pcaMerged@cell.embeddings[,31:40]=dataObjAll@reductions$pca_Spatial@cell.embeddings[,1:10]
+dataObjAllProcessed@reductions$pcaMerged@cell.embeddings[,41:50]=dataObjAll@reductions$pca_Texture@cell.embeddings[,1:10]
+
+
+dataObjAllProcessed <- FindNeighbors(dataObjAllProcessed, dims = 1:50,reduction ="pcaMerged" )
+dataObjAllProcessed <- FindClusters(dataObjAllProcessed, resolution = 0.8)
+
+dataObjAllProcessed <- RunUMAP(dataObjAllProcessed, dims = 1:50)
+DimPlot(dataObjAllProcessed, reduction = "umap",group.by="Group")
+```
+
+
+
+
+## Correlation of samples
+### all samples, by feature type
+```{r}
+Heatmap(cor(dataObjAll@assays$AreaShape@data,method="sp"))
+```
+
+
+
+```{r}
+setwd(workDir)
+save.image("20230803.RData")
+```
+
