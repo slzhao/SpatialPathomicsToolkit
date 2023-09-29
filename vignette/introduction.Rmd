@@ -1,5 +1,5 @@
 --- 
-title: "20230622_podocyteMorphomics"
+title: "Morphomics Report"
 author: "Shilin Zhao<br><small>Department of Biostatistics<br>Vanderbilt University School of Medicine</small>"
 date: "<small>`r Sys.Date()`</small>"
 output:
@@ -41,7 +41,7 @@ description: "some description ..."
 # If using blogdown: knitrSet(lang='blogdown')
 
 
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 options(width = 3000)
 
 #Hmisc package html Special characters issue
@@ -77,21 +77,21 @@ featureDataAll=ReadMorphomicFeatures(metaTable)
 ```
 
 ## Data Transformation
-```{r}
+```{r,message=FALSE}
 
-temp=DataSelection(featureDataAll,featureType=c("AreaShape","Intensity"))
+#temp=DataSelection(featureDataAll,featureType=c("AreaShape","Intensity"))
 featureDataAllNormlized=MorphomicFeaturesNormlization(featureDataAll)
 
 ```
 
 
 ## Data Describe
-```{r}
+```{r,message=FALSE}
 library(Hmisc)
 ```
 
 ### Raw
-```{r,results='asis'}
+```{r,results='asis',eval=FALSE}
 varForTable1=colnames(featureDataAllNormlized[["FeatureData"]])
 s=describe(featureDataAllNormlized[["FeatureData"]][,varForTable1])
 html(s, exclude1=FALSE,  what=c('%'),digits=3, prmsd=TRUE)
@@ -99,7 +99,7 @@ html(s, exclude1=FALSE,  what=c('%'),digits=3, prmsd=TRUE)
 
 ### Transformation summary
 ```{r}
-print(table(rawDataValuesNormlizedSummary$note))
+print(table(featureDataAllNormlized[["FeatureDataNormlizedSummary"]]$note))
 ```
 
 ### After data Transformation
@@ -108,6 +108,93 @@ varForTable1=colnames(featureDataAllNormlized[["FeatureDataNormlized"]])
 s=describe(featureDataAllNormlized[["FeatureDataNormlized"]][,varForTable1])
 html(s, exclude1=FALSE,  what=c('%'),digits=3, prmsd=TRUE)
 ```
+
+## Perform PCA and Correlation 
+```{r,results='hide'}
+featureDataAllNormlized=featureDataPcaAll(featureDataAllNormlized)
+```
+
+## PCA: Propotion of Variance Explained
+### By Feature Type
+```{r,fig.width=9,fig.height=9,message=FALSE}
+pList=list()
+for (reductionName in c("AreaShape","Granularity"  ,"Intensity","Neighbors", "RadialDistribution" ,"Texture"  )){
+  pList[[reductionName]]=plotPcaBarplot(featureDataAllNormlized,reductionName=reductionName)+ggtitle(reductionName)
+}
+
+#show plots in pList by patchwork package
+patchwork::wrap_plots(pList,ncol=2)
+#patchwork::wrap_plots(pList,ncol=2,guides='collect')&scale_fill_gradientn(colors = color_palette,limits=c(0,30))
+
+
+```
+
+### By Cell Type
+```{r,message=FALSE}
+pList=list()
+for (reductionName in c("mesangial","PEC", "podocyte" ,"ALL"  )){
+  pList[[reductionName]]=plotPcaBarplot(featureDataAllNormlized,reductionName=reductionName)+ggtitle(reductionName)
+}
+patchwork::wrap_plots(pList,ncol=2)
+
+```
+
+
+## PCA: Correlation of PCs in different cell
+### By Feature Type
+```{r,fig.width=9,fig.height=9}
+# names(featureDataAllNormlized[["Reductions"]])
+# 
+# reductionName="Texture"
+# temp1=featureDataAllNormlized[["Reductions"]][[reductionName]]$cell.embeddings[,3]
+# 
+# reductionName="podocyte_Texture"
+# temp2=featureDataAllNormlized[["Reductions"]][[reductionName]]$cell.embeddings[,3]
+
+plotPCsByCellType(featureDataAllNormlized,reductionName="AreaShape")
+plotPCsByCellType(featureDataAllNormlized,reductionName="Granularity")
+plotPCsByCellType(featureDataAllNormlized,reductionName="Intensity")
+plotPCsByCellType(featureDataAllNormlized,reductionName="Neighbors")
+plotPCsByCellType(featureDataAllNormlized,reductionName="RadialDistribution")
+plotPCsByCellType(featureDataAllNormlized,reductionName="Texture")
+
+```
+
+### All Features together
+```{r,fig.width=12,fig.height=9}
+plotPCsByCellType(featureDataAllNormlized,reductionName="ALL",reductionNameToComp=c("mesangial","PEC" ,"podocyte"),PCs=1:9)
+
+# plotPCsByCellType(featureDataAllNormlized,reductionName="ALL",reductionNameToComp=c("AreaShape","Granularity" ,"Intensity"),PCs=1:4)
+
+```
+
+## PCA: Loading of PCs in different cell
+```{r,fig.width=9,fig.height=9}
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="AreaShape")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Granularity")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Intensity")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Neighbors")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="RadialDistribution")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Texture")
+
+```
+
+### All Features together
+```{r,fig.width=9,fig.height=20}
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="ALL",reductionNameToComp=c("mesangial","PEC" ,"podocyte"),PCs=1:9)
+
+```
+
+
+## Feature Correlation Heatmap
+```{r,fig.width=9,fig.height=9,message=FALSE}
+plotCorHeatmap(featureDataAllNormlized,PCs=1:4)
+plotCorHeatmap(featureDataAllNormlized,reductionName="podocyte",PCs=1:4)
+plotCorHeatmap(featureDataAllNormlized,reductionName="Intensity",PCs=1:4)
+plotCorHeatmap(featureDataAllNormlized,reductionName="podocyte_Intensity",PCs=1:4)
+
+```
+
 
 
 

@@ -1,6 +1,6 @@
 ReadMorphomicFeatures=function(metaTable) {
   featureTableList=list()
-  for (i in seq_along(metaTable)) {
+  for (i in 1:nrow(metaTable)) {
     sampleName=metaTable[i,1]
     fileName=metaTable[i,2]
     featureTable=read.csv(fileName)
@@ -14,9 +14,15 @@ ReadMorphomicFeatures=function(metaTable) {
     featuresToMetaInd=which(featureTypes=="Number" |featureTypes=="Location")
     featuresToMetaTable=featureTable[,c(1:2,featuresToMetaInd+2)]
     featuresToMetaTable=data.frame(as.vector(metaTable[i,]),featuresToMetaTable)
+    row.names(featuresToMetaTable)=paste0(featuresToMetaTable$File,
+                                          "_",
+                                          featuresToMetaTable$ImageNumber,
+                                          "_",
+                                          featuresToMetaTable$ObjectNumber)
 
     featureTableData=featureTable[,-c(1:2,featuresToMetaInd+2)]
-    colnames(featureTableData)=gsub("^[A-Za-z]+_","",colnames(featureTableData))
+    colnames(featureTableData)=make.names(gsub("^[A-Za-z]+_","",colnames(featureTableData)))
+    row.names(featureTableData)=row.names(featuresToMetaTable)
 
     featureTypes=featureTypes[-c(featuresToMetaInd)]
     names(featureTypes)=colnames(featureTableData)
@@ -43,10 +49,10 @@ MorphomicFeaturesNormlization=function(featureDataAll,nUnique=10,CellType=NULL,S
   dataTableFiltered=dataTable
 
   print("Remove variables less than 10 unique values")
-  #temp=which(apply(rawData,2,function(x) all(is.na(x))))
   temp=apply(dataTable,2,function(x) length(unique(x)))
   featuresToRemoveInd=which(temp<=nUnique)
   if (length(featuresToRemoveInd)>0) {
+    featureToRemoveNames=colnames(dataTable)[featuresToRemoveInd]
     dataTableFiltered=dataTable[,-featuresToRemoveInd]
 
     featureDataSubset[["FeatureData"]]=featureDataSubset[["FeatureData"]][,-featuresToRemoveInd]
@@ -57,6 +63,39 @@ MorphomicFeaturesNormlization=function(featureDataAll,nUnique=10,CellType=NULL,S
     print(table(featureDataSubset[["FeatureType"]]))
   } else {
     dataTableFiltered=dataTable
+  }
+
+
+  print("Remove variables with NA")
+  temp=apply(dataTableFiltered,2,function(x) length(which(is.na(x))))
+  featuresToRemoveInd=which(temp>0)
+  if (length(featuresToRemoveInd)>0) {
+    featureToRemoveNames=colnames(dataTableFiltered)[featuresToRemoveInd]
+    dataTableFiltered=dataTableFiltered[,-featuresToRemoveInd]
+
+    featureDataSubset[["FeatureData"]]=featureDataSubset[["FeatureData"]][,-featuresToRemoveInd]
+    featureDataSubset[["FeatureType"]]=featureDataSubset[["FeatureType"]][-featuresToRemoveInd]
+
+    print(paste0(length(featuresToRemoveInd)," features removed"))
+    print(paste(featureToRemoveNames,collapse=";"))
+    print("Number of features after selection:")
+    print(table(featureDataSubset[["FeatureType"]]))
+  }
+
+  print("Remove variables less than 2% subjects with unique values")
+  temp=apply(dataTableFiltered,2,function(x) quantile(x,c(0.01,0.99)))
+  featuresToRemoveInd=which(temp[1,]==temp[2,])
+  if (length(featuresToRemoveInd)>0) {
+    featureToRemoveNames=colnames(dataTableFiltered)[featuresToRemoveInd]
+    dataTableFiltered=dataTableFiltered[,-featuresToRemoveInd]
+
+    featureDataSubset[["FeatureData"]]=featureDataSubset[["FeatureData"]][,-featuresToRemoveInd]
+    featureDataSubset[["FeatureType"]]=featureDataSubset[["FeatureType"]][-featuresToRemoveInd]
+
+    print(paste0(length(featuresToRemoveInd)," features removed"))
+    print(paste(featureToRemoveNames,collapse=";"))
+    print("Number of features after selection:")
+    print(table(featureDataSubset[["FeatureType"]]))
   }
 
   rawDataValuesNormlizedResult=dataTransfomation(data.frame(dataTableFiltered))
