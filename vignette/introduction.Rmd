@@ -119,7 +119,7 @@ featureDataAllNormlized=featureDataPcaAll(featureDataAllNormlized)
 ```{r,fig.width=9,fig.height=9,message=FALSE}
 pList=list()
 for (reductionName in c("AreaShape","Granularity"  ,"Intensity","Neighbors", "RadialDistribution" ,"Texture"  )){
-  pList[[reductionName]]=plotPcaBarplot(featureDataAllNormlized,reductionName=reductionName)+ggtitle(reductionName)
+  pList[[reductionName]]=plotPcaBarplot(featureDataAllNormlized,reductionName=paste0(reductionName,"_PCA"))+ggtitle(reductionName)
 }
 
 #show plots in pList by patchwork package
@@ -133,7 +133,7 @@ patchwork::wrap_plots(pList,ncol=2)
 ```{r,message=FALSE}
 pList=list()
 for (reductionName in c("mesangial","PEC", "podocyte" ,"ALL"  )){
-  pList[[reductionName]]=plotPcaBarplot(featureDataAllNormlized,reductionName=reductionName)+ggtitle(reductionName)
+  pList[[reductionName]]=plotPcaBarplot(featureDataAllNormlized,reductionName=paste0(reductionName,"_PCA"))+ggtitle(reductionName)
 }
 patchwork::wrap_plots(pList,ncol=2)
 
@@ -151,18 +151,18 @@ patchwork::wrap_plots(pList,ncol=2)
 # reductionName="podocyte_Texture"
 # temp2=featureDataAllNormlized[["Reductions"]][[reductionName]]$cell.embeddings[,3]
 
-plotPCsByCellType(featureDataAllNormlized,reductionName="AreaShape")
-plotPCsByCellType(featureDataAllNormlized,reductionName="Granularity")
-plotPCsByCellType(featureDataAllNormlized,reductionName="Intensity")
-plotPCsByCellType(featureDataAllNormlized,reductionName="Neighbors")
-plotPCsByCellType(featureDataAllNormlized,reductionName="RadialDistribution")
-plotPCsByCellType(featureDataAllNormlized,reductionName="Texture")
+plotPCsByCellType(featureDataAllNormlized,reductionName="AreaShape_PCA")
+plotPCsByCellType(featureDataAllNormlized,reductionName="Granularity_PCA")
+plotPCsByCellType(featureDataAllNormlized,reductionName="Intensity_PCA")
+plotPCsByCellType(featureDataAllNormlized,reductionName="Neighbors_PCA")
+plotPCsByCellType(featureDataAllNormlized,reductionName="RadialDistribution_PCA")
+plotPCsByCellType(featureDataAllNormlized,reductionName="Texture_PCA")
 
 ```
 
 ### All Features together
 ```{r,fig.width=12,fig.height=9}
-plotPCsByCellType(featureDataAllNormlized,reductionName="ALL",reductionNameToComp=c("mesangial","PEC" ,"podocyte"),PCs=1:9)
+plotPCsByCellType(featureDataAllNormlized,reductionName="ALL_PCA",reductionNameToComp=c("mesangial_PCA","PEC_PCA" ,"podocyte_PCA"),PCs=1:9)
 
 # plotPCsByCellType(featureDataAllNormlized,reductionName="ALL",reductionNameToComp=c("AreaShape","Granularity" ,"Intensity"),PCs=1:4)
 
@@ -170,18 +170,18 @@ plotPCsByCellType(featureDataAllNormlized,reductionName="ALL",reductionNameToCom
 
 ## PCA: Loading of PCs in different cell
 ```{r,fig.width=9,fig.height=9}
-plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="AreaShape")
-plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Granularity")
-plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Intensity")
-plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Neighbors")
-plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="RadialDistribution")
-plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Texture")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="AreaShape_PCA")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Granularity_PCA")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Intensity_PCA")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Neighbors_PCA")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="RadialDistribution_PCA")
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="Texture_PCA")
 
 ```
 
 ### All Features together
 ```{r,fig.width=9,fig.height=20}
-plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="ALL",reductionNameToComp=c("mesangial","PEC" ,"podocyte"),PCs=1:9)
+plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="ALL_PCA",reductionNameToComp=c("mesangial_PCA","PEC_PCA" ,"podocyte_PCA"),PCs=1:9)
 
 ```
 
@@ -189,12 +189,130 @@ plotPCsLoadingByCellType(featureDataAllNormlized,reductionName="ALL",reductionNa
 ## Feature Correlation Heatmap
 ```{r,fig.width=9,fig.height=9,message=FALSE}
 plotCorHeatmap(featureDataAllNormlized,PCs=1:4)
-plotCorHeatmap(featureDataAllNormlized,reductionName="podocyte",PCs=1:4)
-plotCorHeatmap(featureDataAllNormlized,reductionName="Intensity",PCs=1:4)
-plotCorHeatmap(featureDataAllNormlized,reductionName="podocyte_Intensity",PCs=1:4)
+plotCorHeatmap(featureDataAllNormlized,reductionName="podocyte_PCA",PCs=1:4)
+plotCorHeatmap(featureDataAllNormlized,reductionName="Intensity_PCA",PCs=1:4)
+plotCorHeatmap(featureDataAllNormlized,reductionName="podocyte_Intensity_PCA",PCs=1:4)
+
+```
+
+## sparsePCA analysis
+### Perform sparsePCA based on PCA results
+```{r}
+#another package
+#devtools::install_github("erichson/spca")
+library(sparsepca)
+
+
+temp=featureDataAllNormlized
+resultSparsePCA=featureDataSparsePca(temp,dataName="FeatureDataNormlized",k=30,alpha = 1e-03)
+featureDataAllNormlized[["Reductions"]]$ALL_SparsePCA=resultSparsePCA
+
+
+featureType="AreaShape"
+temp=DataSelection(featureDataAllNormlized,featureType=featureType)
+resultSparsePCA=featureDataSparsePca(temp,dataName="FeatureDataNormlized",k=10,alpha = 1e-03)
+featureDataAllNormlized[["Reductions"]]$AreaShape_SparsePCA=resultSparsePCA
+
+featureType="Intensity"
+temp=DataSelection(featureDataAllNormlized,featureType=featureType)
+resultSparsePCA=featureDataSparsePca(temp,dataName="FeatureDataNormlized",k=4,alpha = 1e-03)
+featureDataAllNormlized[["Reductions"]]$Intensity_SparsePCA=resultSparsePCA
+
+featureType="Neighbors"
+temp=DataSelection(featureDataAllNormlized,featureType=featureType)
+resultSparsePCA=featureDataSparsePca(temp,dataName="FeatureDataNormlized",k=4,alpha = 1e-03)
+featureDataAllNormlized[["Reductions"]]$Neighbors_SparsePCA=resultSparsePCA
+
+featureType="RadialDistribution"
+temp=DataSelection(featureDataAllNormlized,featureType=featureType)
+resultSparsePCA=featureDataSparsePca(temp,dataName="FeatureDataNormlized",k=10,alpha = 1e-03)
+featureDataAllNormlized[["Reductions"]]$RadialDistribution_SparsePCA=resultSparsePCA
+
+featureType="Texture"
+temp=DataSelection(featureDataAllNormlized,featureType=featureType)
+resultSparsePCA=featureDataSparsePca(temp,dataName="FeatureDataNormlized",k=4,alpha = 1e-03)
+featureDataAllNormlized[["Reductions"]]$Texture_SparsePCA=resultSparsePCA
+
+featureType="Granularity"
+temp=DataSelection(featureDataAllNormlized,featureType=featureType)
+resultSparsePCA=featureDataSparsePca(temp,dataName="FeatureDataNormlized",k=4,alpha = 1e-03)
+featureDataAllNormlized[["Reductions"]]$Granularity_SparsePCA=resultSparsePCA
+
+
+# 
+# dataForsPCA=temp[["FeatureDataNormlized"]]
+# set.seed(123)
+# rspca.results <- rspca((dataForsPCA), k=10, verbose=TRUE, max_iter=1000,center=TRUE, scale=TRUE)
+# row.names(rspca.results$loadings)=colnames(dataForsPCA)
+# head(rspca.results$loadings)
+# 
+# summary(rspca.results)
+# 
+# 
+# featureType="Intensity"
+# temp=DataSelection(featureDataAllNormlized,featureType=featureType)
+# dataForsPCA=temp[["FeatureDataNormlized"]]
+# 
+# rspca.results <- rspca((dataForsPCA), k=5, verbose=TRUE, max_iter=1000,center=TRUE, scale=TRUE,alpha = 1e-03)
+# row.names(rspca.results$loadings)=colnames(dataForsPCA)
+# colnames(rspca.results$loadings)=paste0("PC",1:ncol(rspca.results$loadings))
+# 
+# head(rspca.results$loadings)
+# #how many features for each PC
+# apply(rspca.results$loadings,2,function(x) length(which(x!=0))/length(x))
+# #Existing in how many PCs for each feature
+# table(apply(rspca.results$loadings,1,function(x) length(which(x!=0))))
+# 
+# summary(rspca.results)
+
+# temp=rspca.results$loadings
+# temp[temp==0]=NA
+# ComplexHeatmap::Heatmap(temp,cluster_columns = FALSE,cluster_rows =  FALSE)
+
+
+
+
+```
+
+### sparsePCA loading Vis
+```{r,fig.width=9,fig.height=9,warning=FALSE}
+for (reduction in c("ALL_SparsePCA","AreaShape_SparsePCA","RadialDistribution_SparsePCA")) {
+  plot(plotPCsLoading(featureDataAllNormlized[["Reductions"]][[reduction]]$feature.loadings[,1:9])+ggtitle(reduction))
+}
+
+for (reduction in c("Intensity_SparsePCA","Neighbors_SparsePCA","Texture_SparsePCA","Granularity_SparsePCA")) {
+  plot(plotPCsLoading(featureDataAllNormlized[["Reductions"]][[reduction]]$feature.loadings[,1:4])+ggtitle(reduction))
+}
+
+# plotPCsLoading(featureDataAllNormlized[["Reductions"]]$AreaShape_SparsePCA$feature.loadings[,1:9])
+# plotPCsLoading(featureDataAllNormlized[["Reductions"]]$RadialDistribution_SparsePCA$feature.loadings[,1:9])
+# plotPCsLoading(featureDataAllNormlized[["Reductions"]]$Intensity_SparsePCA$feature.loadings[,1:4])
+# plotPCsLoading(featureDataAllNormlized[["Reductions"]]$Neighbors_SparsePCA$feature.loadings[,1:4])
+# plotPCsLoading(featureDataAllNormlized[["Reductions"]]$Texture_SparsePCA$feature.loadings[,1:4])
+# plotPCsLoading(featureDataAllNormlized[["Reductions"]]$Granularity_SparsePCA$feature.loadings[,1:4])
+
+
 
 ```
 
 
+
+## Differential detection
+### Diff By cell type in all samples
+```{r,results='asis'}
+testResult=testFeatureDiff(featureDataAllNormlized,dataName="AreaShape_PCA",groupColumn="CellType")
+knitr::kable(head(testResult))
+plotFeatureByGroup(featureDataAllNormlized,dataName="AreaShape_PCA",featureNames=c("PC1","PC2","PC4","PC5"),groupColumn="CellType")
+
+```
+
+### Diff By Sample in one cell type
+```{r,results='asis'}
+temp=DataSelection(featureDataAllNormlized,CellType="mesangial")
+testResult=testFeatureDiff(temp,dataName="AreaShape_PCA",groupColumn="Sample")
+knitr::kable(head(testResult))
+plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC2","PC5"),groupColumn="Sample")
+
+```
 
 
