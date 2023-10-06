@@ -11,7 +11,7 @@ ReadMorphomicFeatures=function(metaTable) {
     featureTypes=gsub("_.*","",colnames(featureTable)[-c(1:2)])
 
     #location and number to meta table
-    featuresToMetaInd=which(featureTypes=="Number" |featureTypes=="Location")
+    featuresToMetaInd=which(featureTypes=="Number" | featureTypes=="Location" | featureTypes=="FileName" | featureTypes=="PathName")
     featuresToMetaTable=featureTable[,c(1:2,featuresToMetaInd+2)]
     featuresToMetaTable=data.frame(as.vector(metaTable[i,]),featuresToMetaTable)
     row.names(featuresToMetaTable)=paste0(featuresToMetaTable$File,

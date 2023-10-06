@@ -52,10 +52,11 @@ options(htmlSpecialType='&')
 <!-- # Functions and packages -->
 
 ```{r,message=FALSE,warning=FALSE}
+devtools::load_all("D:/source/SpatialPathomicsToolkit")
+
 library(knitr)
 library(tidyverse)
 
-devtools::load_all("D:/source/SpatialPathomicsToolkit")
 ```
 
 
@@ -63,16 +64,21 @@ devtools::load_all("D:/source/SpatialPathomicsToolkit")
 
 ```{r}
 
-dataDir="d:\\workSync\\HaichunYang\\202306_podocyteMorphomics\\202309_data\\"
+dataDir="d:\\workSync\\HaichunYang\\202306_podocyteMorphomics\\202310_data\\"
 setwd(dataDir)
 
 files=list.files(pattern="*.csv")
 samples=gsub("_.*","",files)
 samples=gsub("6793-","",samples)
-celltypes=sapply(strsplit(files,"_"),function(x) x[2])
+metaTable=data.frame(Sample=samples,File=files,stringsAsFactors=FALSE)
 
-metaTable=data.frame(Sample=samples,File=files,CellType=celltypes,stringsAsFactors=FALSE)
+#celltypes=sapply(strsplit(files,"_"),function(x) x[2])
+#metaTable=data.frame(Sample=samples,File=files,CellType=celltypes,stringsAsFactors=FALSE)
+
 featureDataAll=ReadMorphomicFeatures(metaTable)
+
+#add celltype column
+featureDataAll[["SampleData"]]$CellType=sapply(strsplit(featureDataAll[["SampleData"]]$FileName,"_"),function(x) x[1])
 
 ```
 
@@ -103,7 +109,7 @@ print(table(featureDataAllNormlized[["FeatureDataNormlizedSummary"]]$note))
 ```
 
 ### After data Transformation
-```{r,results='asis'}
+```{r,results='asis',eval=FALSE}
 varForTable1=colnames(featureDataAllNormlized[["FeatureDataNormlized"]])
 s=describe(featureDataAllNormlized[["FeatureDataNormlized"]][,varForTable1])
 html(s, exclude1=FALSE,  what=c('%'),digits=3, prmsd=TRUE)
@@ -281,7 +287,7 @@ for (reduction in c("ALL_SparsePCA","AreaShape_SparsePCA","RadialDistribution_Sp
 }
 
 for (reduction in c("Intensity_SparsePCA","Neighbors_SparsePCA","Texture_SparsePCA","Granularity_SparsePCA")) {
-  plot(plotPCsLoading(featureDataAllNormlized[["Reductions"]][[reduction]]$feature.loadings[,1:4])+ggtitle(reduction))
+  plot(plotPCsLoading(featureDataAllNormlized[["Reductions"]][[reduction]]$feature.loadings[,1:3])+ggtitle(reduction))
 }
 
 # plotPCsLoading(featureDataAllNormlized[["Reductions"]]$AreaShape_SparsePCA$feature.loadings[,1:9])

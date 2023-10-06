@@ -183,6 +183,10 @@ plotPCsByCellType=function(featureDataAllNormlized,reductionName,reductionNameTo
   if (is.null(reductionNameToComp)) {
     reductionNameToComp=grep(paste0("_",reductionName),names(featureDataAllNormlized[["Reductions"]]),value=TRUE)
   }
+
+  if (length(PCs)>ncol(featureDataAllNormlized[["Reductions"]][[reductionName]]$cell.embeddings)) {
+    PCs=PCs[1:ncol(featureDataAllNormlized[["Reductions"]][[reductionName]]$cell.embeddings)]
+  }
   pList=list()
   for (reductionNameToCompOne in reductionNameToComp) {
     for (i in seq_along(PCs)) {
@@ -235,6 +239,9 @@ plotPCsLoadingByCellType=function(featureDataAllNormlized,reductionName,reductio
   }
   if (is.null(reductionNameToComp)) {
     reductionNameToComp=grep(paste0("_",reductionName),names(featureDataAllNormlized[["Reductions"]]),value=TRUE)
+  }
+  if (length(PCs)>ncol(featureDataAllNormlized[["Reductions"]][[reductionName]]$feature.loadings)) {
+    PCs=PCs[1:ncol(featureDataAllNormlized[["Reductions"]][[reductionName]]$feature.loadings)]
   }
 
   pList=list()
