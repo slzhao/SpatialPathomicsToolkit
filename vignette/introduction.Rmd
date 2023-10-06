@@ -313,6 +313,51 @@ testResult=testFeatureDiff(temp,dataName="AreaShape_PCA",groupColumn="Sample")
 knitr::kable(head(testResult))
 plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC2","PC5"),groupColumn="Sample")
 
+#extract cells with largest PC2 and smallest PC2
+cellEmbeddingsTable=temp[["Reductions"]][["AreaShape_PCA"]]$cell.embeddings[row.names(temp[["SampleData"]]),]
+
+temp1=cellEmbeddingsTable[head(order(cellEmbeddingsTable[,"PC2"])),][,1:3]
+temp2=cellEmbeddingsTable[tail(order(cellEmbeddingsTable[,"PC2"])),][,1:3]
+
 ```
+
+
+### Diff By Group in each cell type
+```{r,results='asis'}
+featureDataAllNormlized[["SampleData"]]$Group=ifelse(featureDataAllNormlized[["SampleData"]]$Sample %in% c("AF-7","AF-8"),"Sample78","Sample910")
+
+allCellTypes=unique(featureDataAllNormlized[["SampleData"]]$CellType)
+testResultList=list()
+for (cellType in allCellTypes) {
+  temp=DataSelection(featureDataAllNormlized,CellType=cellType)
+  testResult=testFeatureDiff(temp,dataName="AreaShape_PCA",groupColumn="Group")
+  #knitr::kable(head(testResult))
+  testResultList[[cellType]]=testResult
+}
+
+for (cellType in names(testResultList)) {
+  print(knitr::kable(head(testResultList[[cellType]]),caption = cellType))
+}
+
+temp=DataSelection(featureDataAllNormlized,CellType="mesangial")
+plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC2"),groupColumn="Group")
+
+temp=DataSelection(featureDataAllNormlized,CellType="PEC")
+plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC2","PC6"),groupColumn="Group")
+
+temp=DataSelection(featureDataAllNormlized,CellType="podocyte")
+plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC1","PC2","PC4"),groupColumn="Group")
+
+#PC2 is more related
+#extract cells with largest PC2 and smallest PC2
+cellEmbeddingsTable=featureDataAllNormlized[["Reductions"]][["AreaShape_PCA"]]$cell.embeddings
+temp1=cellEmbeddingsTable[head(order(cellEmbeddingsTable[,"PC2"])),][,1:3]
+temp2=cellEmbeddingsTable[tail(order(cellEmbeddingsTable[,"PC2"])),][,1:3]
+
+#dput(row.names(temp1))
+#dput(row.names(temp2))
+```
+
+
 
 
