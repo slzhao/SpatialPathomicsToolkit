@@ -335,25 +335,43 @@ featureDataAllNormlized[["SampleData"]]$Group=ifelse(featureDataAllNormlized[["S
 allCellTypes=unique(featureDataAllNormlized[["SampleData"]]$CellType)
 testResultList=list()
 for (cellType in allCellTypes) {
+  for (dataName in c("AreaShape_PCA","Intensity_PCA","Neighbors_PCA","Texture_PCA","Granularity_PCA")) {
+    temp=DataSelection(featureDataAllNormlized,CellType=cellType)
+    testResult=testFeatureDiff(temp,dataName=dataName,groupColumn="Group")
+    #knitr::kable(head(testResult))
+    testResultList[[cellType]][[dataName]]=testResult
+  }
+}
+for (cellType in allCellTypes) {
   temp=DataSelection(featureDataAllNormlized,CellType=cellType)
-  testResult=testFeatureDiff(temp,dataName="AreaShape_PCA",groupColumn="Group")
-  #knitr::kable(head(testResult))
-  testResultList[[cellType]]=testResult
+  for (dataName in c("AreaShape_PCA","Intensity_PCA","Neighbors_PCA","Texture_PCA","Granularity_PCA")) {
+    resultTable=head(testResultList[[cellType]][[dataName]])
+    print(knitr::kable(resultTable,caption = paste0(cellType,": ",dataName)))
+    if (any(resultTable[,1]<=0.05)) {
+      p=plotFeatureByGroup(featureDataAllNormlized,dataName=dataName,featureNames=row.names(resultTable)[which(resultTable[,1]<=0.05)],groupColumn="Group")
+      plot(p)
+    }
+  }
 }
 
-for (cellType in names(testResultList)) {
-  print(knitr::kable(head(testResultList[[cellType]]),caption = cellType))
-}
+# temp=DataSelection(featureDataAllNormlized,CellType="mesangial")
+# plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC2","PC6"),groupColumn="Group")
+# plotFeatureByGroup(temp,dataName="Intensity_PCA",featureNames=c("PC3","PC5"),groupColumn="Group")
+# plotFeatureByGroup(temp,dataName="Texture_PCA",featureNames=c("PC3","PC6"),groupColumn="Group")
+# 
+# temp=DataSelection(featureDataAllNormlized,CellType="PEC")
+# plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC2"),groupColumn="Group")
+# 
+# temp=DataSelection(featureDataAllNormlized,CellType="podocyte")
+# plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC1","PC2","PC4"),groupColumn="Group")
+# plotFeatureByGroup(temp,dataName="Intensity_PCA",featureNames=c("PC5"),groupColumn="Group")
+# plotFeatureByGroup(temp,dataName="Neighbors_PCA",featureNames=c("PC1"),groupColumn="Group")
+# plotFeatureByGroup(temp,dataName="Texture_PCA",featureNames=c("PC2"),groupColumn="Group")
+# plotFeatureByGroup(temp,dataName="Granularity_PCA",featureNames=c("PC2"),groupColumn="Group")
 
-temp=DataSelection(featureDataAllNormlized,CellType="mesangial")
-plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC2"),groupColumn="Group")
+```
 
-temp=DataSelection(featureDataAllNormlized,CellType="PEC")
-plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC2","PC6"),groupColumn="Group")
-
-temp=DataSelection(featureDataAllNormlized,CellType="podocyte")
-plotFeatureByGroup(temp,dataName="AreaShape_PCA",featureNames=c("PC1","PC2","PC4"),groupColumn="Group")
-
+```{r,eval=FALSE}
 #PC2 is more related
 #extract cells with largest PC2 and smallest PC2
 cellEmbeddingsTable=featureDataAllNormlized[["Reductions"]][["AreaShape_PCA"]]$cell.embeddings
@@ -364,6 +382,8 @@ temp2=cellEmbeddingsTable[tail(order(cellEmbeddingsTable[,"PC2"])),][,1:3]
 #dput(row.names(temp2))
 ```
 
-
-
+## Save results
+```{r,eval=FALSE}
+saveRDS(featureDataAllNormlized,file.path(dataDir,"featureDataAllNormlized.rds"))
+```
 

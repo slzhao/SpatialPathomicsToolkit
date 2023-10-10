@@ -91,7 +91,11 @@ plotFeatureByGroup=function(featureDataList,featureNames,dataName="FeatureDataNo
   dataForPlot=data.frame(dataToTest,Group=groupToTest)
 
   #make dataForPlot wider except Group column
-  p=dataForPlot %>% pivot_longer(-Group)%>%ggplot(aes(x=Group,y=value,fill=Group))+
+  dataForPlot=dataForPlot %>% pivot_longer(-Group)
+  if (length(featureNames)==1) {
+    dataForPlot$name=featureNames
+  }
+  p=ggplot(dataForPlot,aes(x=Group,y=value,fill=Group))+
     geom_boxplot()+facet_wrap(~name,scales="free_y")+
     theme_bw()+
     theme(axis.text.x = element_text(angle = 90, hjust = 1))+theme(legend.position = "none")
