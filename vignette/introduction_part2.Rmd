@@ -1,0 +1,838 @@
+---
+title: "Morphomics Report -- part 2"
+author: "Yu Wang, Shilin Zhao<br><small>Department of Biostatistics<br>Vanderbilt University School of Medicine</small>"
+date: "<small>`r Sys.Date()`</small>"
+output:
+  rmdformats::robobook:
+    highlight: kate
+    number_sections: no
+    code_folding: hide
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options:
+  markdown:
+    wrap: 72
+# output:
+#   html_document:
+#     toc: yes
+#     toc_depth: 2
+#     number_sections: true
+#     # toc_float:
+#     #   collapsed: true
+#     # code_folding: hide
+#     # theme: cerulean
+#     # keep_md: true
+description: "some description ..."
+---
+
+```{css,echo = FALSE}
+.book .book-body .page-inner {
+  max-width: 1200px;
+}
+```
+
+```{r setup,echo=FALSE}
+#require(Hmisc)    # provides knitrSet and other functions
+#knitrSet(lang='markdown', fig.path='png/', fig.align='left', w=6.5, h=4.5, cache=TRUE)
+# If using blogdown: knitrSet(lang='blogdown')
+
+
+knitr::opts_chunk$set(echo = TRUE)
+options(width = 3000)
+
+#Hmisc package html Special characters issue
+options(htmlSpecialType='&')
+```
+
+
+<!-- # Functions and packages -->
+
+```{r,message=FALSE,warning=FALSE}
+#devtools::load_all("D:/source/SpatialPathomicsToolkit")
+devtools::load_all("/nobackup/h_vangard_1/wangy67/softwares/SpatialPathomicsToolkit")
+library(knitr)
+library(tidyverse)
+library(Seurat)
+library(DT)
+library(png)
+```
+
+
+## Load Data
+
+### Load pathomics feature results (from part1)
+
+```{r}
+
+#dataDir="d:\\workSync\\HaichunYang\\202306_podocyteMorphomics\\202310_data\\"
+dataDir="/nobackup/h_vangard_1/wangy67/PI_Yang/SpatialPathomics/new_marks"
+
+featureDataAllNormlized <- readRDS(file.path(dataDir, "featureDataAllNormlized.rds"))
+
+wrkdir <- "/nobackup/h_vangard_1/wangy67/softwares/SpatialPathomicsToolkit/vignette"
+setwd(wrkdir)
+```
+
+### Optional step: format row names
+
+Should get rid of this step by updating the upstream code when generating the row names initially
+
+```{r, eval = F}
+testdata <- featureDataAllNormlized
+rownames(testdata$FeatureData) <- str_replace_all(rownames(testdata$FeatureData), "_", "-")
+rownames(testdata$SampleData) <- str_replace_all(rownames(testdata$SampleData), "_", "-")
+rownames(testdata$FeatureDataNormlized) <- str_replace_all(rownames(testdata$FeatureDataNormlized), "_", "-")
+rownames(testdata$Reductions$ALL_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$ALL_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$AreaShape_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$AreaShape_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$Granularity_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$Granularity_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$Intensity_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$Intensity_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$Neighbors_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$Neighbors_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$RadialDistribution_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$RadialDistribution_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$Texture_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$Texture_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$PEC_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$PEC_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$PEC_AreaShape_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$PEC_AreaShape_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$PEC_Granularity_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$PEC_Granularity_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$PEC_Intensity_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$PEC_Intensity_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$PEC_Neighbors_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$PEC_Neighbors_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$PEC_RadialDistribution_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$PEC_RadialDistribution_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$PEC_Texture_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$PEC_Texture_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$mesangial_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$mesangial_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$mesangial_AreaShape_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$mesangial_AreaShape_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$mesangial_Granularity_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$mesangial_Granularity_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$mesangial_Intensity_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$mesangial_Intensity_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$mesangial_Neighbors_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$mesangial_Neighbors_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$mesangial_RadialDistribution_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$mesangial_RadialDistribution_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$mesangial_Texture_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$mesangial_Texture_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$podocyte_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$podocyte_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$podocyte_AreaShape_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$podocyte_AreaShape_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$podocyte_Granularity_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$podocyte_Granularity_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$podocyte_Intensity_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$podocyte_Intensity_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$podocyte_Neighbors_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$podocyte_Neighbors_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$podocyte_RadialDistribution_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$podocyte_RadialDistribution_PCA$cell.embeddings), "_", "-")
+rownames(testdata$Reductions$podocyte_Texture_PCA$cell.embeddings) <- str_replace_all(rownames(testdata$Reductions$podocyte_Texture_PCA$cell.embeddings), "_", "-")
+
+```
+
+### Load spatial transcriptomics data (Visium platform)
+
+```{r, eval = F}
+
+s7_gene_seurat <- Load10X_Spatial(data.dir = "/nobackup/h_vangard_1/wangy67/PI_Yang/SpatialPathomics/temp/6793-AF-7/")
+s7_gene_seurat <- SCTransform(s7_gene_seurat, assay = "Spatial", variable.features.n = 5000, verbose = FALSE, return.only.var.genes = T)
+s7_gene_seurat <- NormalizeData(s7_gene_seurat, verbose = FALSE, assay = "Spatial")
+s7_new_cellids <- paste0("DT-AF-7-", Cells(s7_gene_seurat))
+s7_gene_seurat <- RenameCells(s7_gene_seurat, new.names = s7_new_cellids)
+s7_gene_seurat$ID <- s7_new_cellids
+
+s8_gene_seurat <- Load10X_Spatial(data.dir = "/nobackup/h_vangard_1/wangy67/PI_Yang/SpatialPathomics/temp/6793-AF-8/")
+s8_gene_seurat <- SCTransform(s8_gene_seurat, assay = "Spatial", variable.features.n = 5000, verbose = FALSE, return.only.var.genes = T)
+s8_gene_seurat <- NormalizeData(s8_gene_seurat, verbose = FALSE, assay = "Spatial")
+s8_new_cellids <- paste0("DT-AF-8-", Cells(s8_gene_seurat))
+s8_gene_seurat <- RenameCells(s8_gene_seurat, new.names = s8_new_cellids)
+s8_gene_seurat$ID <- s8_new_cellids
+
+s9_gene_seurat <- Load10X_Spatial(data.dir = "/nobackup/h_vangard_1/wangy67/PI_Yang/SpatialPathomics/temp/6793-AF-9/")
+s9_gene_seurat <- SCTransform(s9_gene_seurat, assay = "Spatial", variable.features.n = 5000, verbose = FALSE, return.only.var.genes = T)
+s9_gene_seurat <- NormalizeData(s9_gene_seurat, verbose = FALSE, assay = "Spatial")
+s9_new_cellids <- paste0("Normal-AF-9-", Cells(s9_gene_seurat))
+s9_gene_seurat <- RenameCells(s9_gene_seurat, new.names = s9_new_cellids)
+s9_gene_seurat$ID <- s9_new_cellids
+
+s10_gene_seurat <- Load10X_Spatial(data.dir = "/nobackup/h_vangard_1/wangy67/PI_Yang/SpatialPathomics/temp/6793-AF-10/")
+s10_gene_seurat <- SCTransform(s10_gene_seurat, assay = "Spatial", variable.features.n = 5000, verbose = FALSE, return.only.var.genes = T)
+s10_gene_seurat <- NormalizeData(s10_gene_seurat, verbose = FALSE, assay = "Spatial")
+s10_new_cellids <- paste0("Normal-AF-10-", Cells(s10_gene_seurat))
+s10_gene_seurat <- RenameCells(s10_gene_seurat, new.names = s10_new_cellids)
+s10_gene_seurat$ID <- s10_new_cellids
+
+```
+
+## Prepare match table for aligning gene matrix and morphomical feature matrix
+
+```{r, eval = F}
+merge_df <- featureDataAllNormlized$SampleData
+merge_df$cellid <- gsub("^\\w+\\_([ATCG]+\\-\\d+)\\_.+", "\\1", merge_df$FileName)
+merge_df$cellid <- ifelse(merge_df$Sample %in% c("AF-7", "AF-8"), 
+                          paste("DT", merge_df$Sample, merge_df$cellid, sep = "-"), 
+                          paste("Normal", merge_df$Sample, merge_df$cellid, sep = "-"))
+
+s7_merge_df <- merge_df %>%
+  rownames_to_column("ID") %>%
+  dplyr::select(cellid, ID) %>%
+  mutate(ID = str_replace_all(ID, "_", "-")) %>%
+  dplyr::filter(cellid %in% Cells(s7_gene_seurat))
+
+s8_merge_df <- merge_df %>%
+  rownames_to_column("ID") %>%
+  dplyr::select(cellid, ID) %>%
+  mutate(ID = str_replace_all(ID, "_", "-")) %>%
+  dplyr::filter(cellid %in% Cells(s8_gene_seurat))
+
+s9_merge_df <- merge_df %>%
+  rownames_to_column("ID") %>%
+  dplyr::select(cellid, ID) %>%
+  mutate(ID = str_replace_all(ID, "_", "-")) %>%
+  dplyr::filter(cellid %in% Cells(s9_gene_seurat))
+
+s10_merge_df <- merge_df %>%
+  rownames_to_column("ID") %>%
+  dplyr::select(cellid, ID) %>%
+  mutate(ID = str_replace_all(ID, "_", "-")) %>%
+  dplyr::filter(cellid %in% Cells(s10_gene_seurat))
+
+```
+
+## Load morphormical features into seurat object (cell level matrices)
+
+```{r, eval = F}
+s7_morph_obj <- PrepareFeaturesSeuratObjVisium(testdata,
+                               s7_gene_seurat,
+                               project = "DT-AF-7_morphologic",
+                               subset = s7_merge_df$ID,
+                               assay = "MorphologicFeature",
+                               matchTable = s7_merge_df)
+
+s8_morph_obj <- PrepareFeaturesSeuratObjVisium(testdata,
+                               s8_gene_seurat,
+                               project = "DT-AF-8_morphologic",
+                               subset = s8_merge_df$ID,
+                               assay = "MorphologicFeature",
+                               matchTable = s8_merge_df)
+
+s9_morph_obj <- PrepareFeaturesSeuratObjVisium(testdata,
+                               s9_gene_seurat,
+                               project = "Normal-AF-9_morphologic",
+                               subset = s9_merge_df$ID,
+                               assay = "MorphologicFeature",
+                               matchTable = s9_merge_df)
+
+s10_morph_obj <- PrepareFeaturesSeuratObjVisium(testdata,
+                               s10_gene_seurat,
+                               project = "Normal-AF-10_morphologic",
+                               subset = s10_merge_df$ID,
+                               assay = "MorphologicFeature",
+                               matchTable = s10_merge_df)
+
+saveRDS(s7_morph_obj, "s7_morph_obj.rds")
+saveRDS(s8_morph_obj, "s8_morph_obj.rds")
+saveRDS(s9_morph_obj, "s9_morph_obj.rds")
+saveRDS(s10_morph_obj, "s10_morph_obj.rds")
+
+##PEC cell
+s7_PEC_temp <- DataSelection(testdata,CellType="PEC",Sample="AF-7")
+s7_merge_df_PEC <- s7_merge_df %>% dplyr::filter(ID %in% rownames(s7_PEC_temp$SampleData))
+
+s7_PEC_morph_obj <- PrepareFeaturesSeuratObjVisium(s7_PEC_temp,
+                               s7_gene_seurat,
+                               group = "PEC",
+                               project = "DT-AF-7_PEC_morphologic",
+                               subset = s7_merge_df_PEC$ID,
+                               assay = "PEC_MorphologicFeature",
+                               matchTable = s7_merge_df_PEC)
+
+s8_PEC_temp <- DataSelection(testdata,CellType="PEC",Sample="AF-8")
+s8_merge_df_PEC <- s8_merge_df %>% dplyr::filter(ID %in% rownames(s8_PEC_temp$SampleData))
+
+s8_PEC_morph_obj <- PrepareFeaturesSeuratObjVisium(s8_PEC_temp,
+                               s8_gene_seurat,
+                               group = "PEC",
+                               project = "DT-AF-8_PEC_morphologic",
+                               subset = s8_merge_df_PEC$ID,
+                               assay = "PEC_MorphologicFeature",
+                               matchTable = s8_merge_df_PEC)
+
+s9_PEC_temp <- DataSelection(testdata,CellType="PEC",Sample="AF-9")
+s9_merge_df_PEC <- s9_merge_df %>% dplyr::filter(ID %in% rownames(s9_PEC_temp$SampleData))
+
+s9_PEC_morph_obj <- PrepareFeaturesSeuratObjVisium(s9_PEC_temp,
+                               s9_gene_seurat,
+                               group = "PEC",
+                               project = "Normal-AF-9_PEC_morphologic",
+                               subset = s9_merge_df_PEC$ID,
+                               assay = "PEC_MorphologicFeature",
+                               matchTable = s9_merge_df_PEC)
+
+s10_PEC_temp <- DataSelection(testdata,CellType="PEC",Sample="AF-10")
+s10_merge_df_PEC <- s10_merge_df %>% dplyr::filter(ID %in% rownames(s10_PEC_temp$SampleData))
+
+s10_PEC_morph_obj <- PrepareFeaturesSeuratObjVisium(s10_PEC_temp,
+                               s10_gene_seurat,
+                               group = "PEC",
+                               project = "Normal-AF-10_PEC_morphologic",
+                               subset = s10_merge_df_PEC$ID,
+                               assay = "PEC_MorphologicFeature",
+                               matchTable = s10_merge_df_PEC)
+
+saveRDS(s7_PEC_morph_obj, "s7_PEC_morph_obj.rds")
+saveRDS(s8_PEC_morph_obj, "s8_PEC_morph_obj.rds")
+saveRDS(s9_PEC_morph_obj, "s9_PEC_morph_obj.rds")
+saveRDS(s10_PEC_morph_obj, "s10_PEC_morph_obj.rds")
+
+##mesangial cell
+
+s7_mesangial_temp <- DataSelection(testdata,CellType="mesangial",Sample="AF-7")
+s7_merge_df_mesangial <- s7_merge_df %>% dplyr::filter(ID %in% rownames(s7_mesangial_temp$SampleData))
+
+s7_mesangial_morph_obj <- PrepareFeaturesSeuratObjVisium(s7_mesangial_temp,
+                               s7_gene_seurat,
+                               group = "mesangial",
+                               project = "DT-AF-7_mesangial_morphologic",
+                               subset = s7_merge_df_mesangial$ID,
+                               assay = "mesangial_MorphologicFeature",
+                               matchTable = s7_merge_df_mesangial)
+
+s8_mesangial_temp <- DataSelection(testdata,CellType="mesangial",Sample="AF-8")
+s8_merge_df_mesangial <- s8_merge_df %>% dplyr::filter(ID %in% rownames(s8_mesangial_temp$SampleData))
+
+s8_mesangial_morph_obj <- PrepareFeaturesSeuratObjVisium(s8_mesangial_temp,
+                               s8_gene_seurat,
+                               group = "mesangial",
+                               project = "DT-AF-8_mesangial_morphologic",
+                               subset = s8_merge_df_mesangial$ID,
+                               assay = "mesangial_MorphologicFeature",
+                               matchTable = s8_merge_df_mesangial)
+
+s9_mesangial_temp <- DataSelection(testdata,CellType="mesangial",Sample="AF-9")
+s9_merge_df_mesangial <- s9_merge_df %>% dplyr::filter(ID %in% rownames(s9_mesangial_temp$SampleData))
+
+s9_mesangial_morph_obj <- PrepareFeaturesSeuratObjVisium(s9_mesangial_temp,
+                               s9_gene_seurat,
+                               group = "mesangial",
+                               project = "Normal-AF-9_mesangial_morphologic",
+                               subset = s9_merge_df_mesangial$ID,
+                               assay = "mesangial_MorphologicFeature",
+                               matchTable = s9_merge_df_mesangial)
+
+s10_mesangial_temp <- DataSelection(testdata,CellType="mesangial",Sample="AF-10")
+s10_merge_df_mesangial <- s10_merge_df %>% dplyr::filter(ID %in% rownames(s10_mesangial_temp$SampleData))
+
+s10_mesangial_morph_obj <- PrepareFeaturesSeuratObjVisium(s10_mesangial_temp,
+                               s10_gene_seurat,
+                               group = "mesangial",
+                               project = "Normal-AF-10_mesangial_morphologic",
+                               subset = s10_merge_df_mesangial$ID,
+                               assay = "mesangial_MorphologicFeature",
+                               matchTable = s10_merge_df_mesangial)
+
+saveRDS(s7_mesangial_morph_obj, "s7_mesangial_morph_obj.rds")
+saveRDS(s8_mesangial_morph_obj, "s8_mesangial_morph_obj.rds")
+saveRDS(s9_mesangial_morph_obj, "s9_mesangial_morph_obj.rds")
+saveRDS(s10_mesangial_morph_obj, "s10_mesangial_morph_obj.rds")
+
+##podocyte cell
+
+s7_podocyte_temp <- DataSelection(testdata,CellType="podocyte",Sample="AF-7")
+s7_merge_df_podocyte <- s7_merge_df %>% dplyr::filter(ID %in% rownames(s7_podocyte_temp$SampleData))
+
+s7_podocyte_morph_obj <- PrepareFeaturesSeuratObjVisium(s7_podocyte_temp,
+                               s7_gene_seurat,
+                               group = "podocyte",
+                               project = "DT-AF-7_podocyte_morphologic",
+                               subset = s7_merge_df_podocyte$ID,
+                               assay = "podocyte_MorphologicFeature",
+                               matchTable = s7_merge_df_podocyte)
+
+s8_podocyte_temp <- DataSelection(testdata,CellType="podocyte",Sample="AF-8")
+s8_merge_df_podocyte <- s8_merge_df %>% dplyr::filter(ID %in% rownames(s8_podocyte_temp$SampleData))
+
+s8_podocyte_morph_obj <- PrepareFeaturesSeuratObjVisium(s8_podocyte_temp,
+                               s8_gene_seurat,
+                               group = "podocyte",
+                               project = "DT-AF-8_podocyte_morphologic",
+                               subset = s8_merge_df_podocyte$ID,
+                               assay = "podocyte_MorphologicFeature",
+                               matchTable = s8_merge_df_podocyte)
+
+s9_podocyte_temp <- DataSelection(testdata,CellType="podocyte",Sample="AF-9")
+s9_merge_df_podocyte <- s9_merge_df %>% dplyr::filter(ID %in% rownames(s9_podocyte_temp$SampleData))
+
+s9_podocyte_morph_obj <- PrepareFeaturesSeuratObjVisium(s9_podocyte_temp,
+                               s9_gene_seurat,
+                               group = "podocyte",
+                               project = "Normal-AF-9_podocyte_morphologic",
+                               subset = s9_merge_df_podocyte$ID,
+                               assay = "podocyte_MorphologicFeature",
+                               matchTable = s9_merge_df_podocyte)
+
+s10_podocyte_temp <- DataSelection(testdata,CellType="podocyte",Sample="AF-10")
+s10_merge_df_podocyte <- s10_merge_df %>% dplyr::filter(ID %in% rownames(s10_podocyte_temp$SampleData))
+
+s10_podocyte_morph_obj <- PrepareFeaturesSeuratObjVisium(s10_podocyte_temp,
+                               s10_gene_seurat,
+                               group = "podocyte",
+                               project = "Normal-AF-10_podocyte_morphologic",
+                               subset = s10_merge_df_podocyte$ID,
+                               assay = "podocyte_MorphologicFeature",
+                               matchTable = s10_merge_df_podocyte)
+
+saveRDS(s7_podocyte_morph_obj, "s7_podocyte_morph_obj.rds")
+saveRDS(s8_podocyte_morph_obj, "s8_podocyte_morph_obj.rds")
+saveRDS(s9_podocyte_morph_obj, "s9_podocyte_morph_obj.rds")
+saveRDS(s10_podocyte_morph_obj, "s10_podocyte_morph_obj.rds")
+
+```
+
+
+
+```{r}
+s7_morph_obj <- readRDS("s7_morph_obj.rds")
+s8_morph_obj <- readRDS("s8_morph_obj.rds")
+s9_morph_obj <- readRDS("s9_morph_obj.rds")
+s10_morph_obj <- readRDS("s10_morph_obj.rds")
+s7_PEC_morph_obj <- readRDS("s7_PEC_morph_obj.rds")
+s8_PEC_morph_obj <- readRDS("s8_PEC_morph_obj.rds")
+s9_PEC_morph_obj <- readRDS("s9_PEC_morph_obj.rds")
+s10_PEC_morph_obj <- readRDS("s10_PEC_morph_obj.rds")
+s7_mesangial_morph_obj <- readRDS("s7_mesangial_morph_obj.rds")
+s8_mesangial_morph_obj <- readRDS("s8_mesangial_morph_obj.rds")
+s9_mesangial_morph_obj <- readRDS("s9_mesangial_morph_obj.rds")
+s10_mesangial_morph_obj <- readRDS("s10_mesangial_morph_obj.rds")
+s7_podocyte_morph_obj  <- readRDS("s7_podocyte_morph_obj.rds")
+s8_podocyte_morph_obj  <- readRDS("s8_podocyte_morph_obj.rds")
+s9_podocyte_morph_obj  <- readRDS("s9_podocyte_morph_obj.rds")
+s10_podocyte_morph_obj <- readRDS("s10_podocyte_morph_obj.rds")
+
+```
+
+
+## Visualization of first N PCs of each feature types
+
+```{r, eval = F}
+types <- c("ALL", unique(testdata$FeatureType))
+
+for(i in 1:length(types)){
+  type <- types[i]
+  N.pc <- ifelse(type %in% c("Granularity", "Intensity", "Neighbors"), 3, 5)
+  pc.id <- paste0(type, "_PCA")
+  s7.Npc.cell.embed <- s7_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s7.Npc.cell.embed) <- paste(type, colnames(s7.Npc.cell.embed), sep = "_")
+  s7_morph_obj@meta.data <- cbind(s7_morph_obj@meta.data, s7.Npc.cell.embed)
+  
+  s8.Npc.cell.embed <- s8_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s8.Npc.cell.embed) <- paste(type, colnames(s8.Npc.cell.embed), sep = "_")
+  s8_morph_obj@meta.data <- cbind(s8_morph_obj@meta.data, s8.Npc.cell.embed)
+  
+  s9.Npc.cell.embed <- s9_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s9.Npc.cell.embed) <- paste(type, colnames(s9.Npc.cell.embed), sep = "_")
+  s9_morph_obj@meta.data <- cbind(s9_morph_obj@meta.data, s9.Npc.cell.embed)
+  
+  s10.Npc.cell.embed <- s10_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s10.Npc.cell.embed) <- paste(type, colnames(s10.Npc.cell.embed), sep = "_")
+  s10_morph_obj@meta.data <- cbind(s10_morph_obj@meta.data, s10.Npc.cell.embed)
+  
+  for(j in 1:N.pc) {
+    feature.id <- paste0(type, "_PC_", j)
+    DefaultAssay(s7_morph_obj) <- "MorphologicFeature"
+    s7.feature.plt <- SpatialFeaturePlot(s7_morph_obj, 
+                                         features = feature.id, 
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s7 ", type, " PC", j))
+    
+  }
+}
+
+```
+
+## Merge gene and morphomical feature objects at spot level
+
+```{r, eval = F}
+s7_morph_obj_merge <- MergeObjects(s7_gene_seurat, s7_morph_obj, mergeTable = s7_merge_df)
+
+s8_morph_obj_merge <- MergeObjects(s8_gene_seurat, s8_morph_obj, mergeTable = s8_merge_df)
+
+s9_morph_obj_merge <- MergeObjects(s9_gene_seurat, s9_morph_obj, mergeTable = s9_merge_df)
+
+s10_morph_obj_merge <- MergeObjects(s10_gene_seurat, s10_morph_obj, mergeTable = s10_merge_df)
+
+saveRDS(s7_morph_obj_merge, "s7_morph_obj_merge.rds")
+saveRDS(s8_morph_obj_merge, "s8_morph_obj_merge.rds")
+saveRDS(s9_morph_obj_merge, "s9_morph_obj_merge.rds")
+saveRDS(s10_morph_obj_merge, "s10_morph_obj_merge.rds")
+
+s7_PEC_morph_obj_merge <- MergeObjects(s7_gene_seurat, s7_PEC_morph_obj, mergeTable = s7_merge_df_PEC)
+
+s8_PEC_morph_obj_merge <- MergeObjects(s8_gene_seurat, s8_PEC_morph_obj, mergeTable = s8_merge_df_PEC)
+
+s9_PEC_morph_obj_merge <- MergeObjects(s9_gene_seurat, s9_PEC_morph_obj, mergeTable = s9_merge_df_PEC)
+
+s10_PEC_morph_obj_merge <- MergeObjects(s10_gene_seurat, s10_PEC_morph_obj, mergeTable = s10_merge_df_PEC)
+
+saveRDS(s7_PEC_morph_obj_merge, "s7_PEC_morph_obj_merge.rds")
+saveRDS(s8_PEC_morph_obj_merge, "s8_PEC_morph_obj_merge.rds")
+saveRDS(s9_PEC_morph_obj_merge, "s9_PEC_morph_obj_merge.rds")
+saveRDS(s10_PEC_morph_obj_merge, "s10_PEC_morph_obj_merge.rds")
+
+s7_mesangial_morph_obj_merge <- MergeObjects(s7_gene_seurat, s7_mesangial_morph_obj, mergeTable = s7_merge_df_mesangial)
+
+s8_mesangial_morph_obj_merge <- MergeObjects(s8_gene_seurat, s8_mesangial_morph_obj, mergeTable = s8_merge_df_mesangial)
+
+s9_mesangial_morph_obj_merge <- MergeObjects(s9_gene_seurat, s9_mesangial_morph_obj, mergeTable = s9_merge_df_mesangial)
+
+s10_mesangial_morph_obj_merge <- MergeObjects(s10_gene_seurat, s10_mesangial_morph_obj, mergeTable = s10_merge_df_mesangial)
+
+saveRDS(s7_mesangial_morph_obj_merge, "s7_mesangial_morph_obj_merge.rds")
+saveRDS(s8_mesangial_morph_obj_merge, "s8_mesangial_morph_obj_merge.rds")
+saveRDS(s9_mesangial_morph_obj_merge, "s9_mesangial_morph_obj_merge.rds")
+saveRDS(s10_mesangial_morph_obj_merge, "s10_mesangial_morph_obj_merge.rds")
+
+s7_podocyte_morph_obj_merge <- MergeObjects(s7_gene_seurat, s7_podocyte_morph_obj, mergeTable = s7_merge_df_podocyte)
+
+s8_podocyte_morph_obj_merge <- MergeObjects(s8_gene_seurat, s8_podocyte_morph_obj, mergeTable = s8_merge_df_podocyte)
+
+s9_podocyte_morph_obj_merge <- MergeObjects(s9_gene_seurat, s9_podocyte_morph_obj, mergeTable = s9_merge_df_podocyte)
+
+s10_podocyte_morph_obj_merge <- MergeObjects(s10_gene_seurat, s10_podocyte_morph_obj, mergeTable = s10_merge_df_podocyte)
+
+saveRDS(s7_podocyte_morph_obj_merge, "s7_podocyte_morph_obj_merge.rds")
+saveRDS(s8_podocyte_morph_obj_merge, "s8_podocyte_morph_obj_merge.rds")
+saveRDS(s9_podocyte_morph_obj_merge, "s9_podocyte_morph_obj_merge.rds")
+saveRDS(s10_podocyte_morph_obj_merge, "s10_podocyte_morph_obj_merge.rds")
+
+```
+
+
+```{r}
+s7_morph_obj_merge <- readRDS("s7_morph_obj_merge.rds")
+s8_morph_obj_merge <- readRDS("s8_morph_obj_merge.rds")
+s9_morph_obj_merge <- readRDS("s9_morph_obj_merge.rds")
+s10_morph_obj_merge <- readRDS("s10_morph_obj_merge.rds")
+s7_PEC_morph_obj_merge <- readRDS("s7_PEC_morph_obj_merge.rds")
+s8_PEC_morph_obj_merge <- readRDS("s8_PEC_morph_obj_merge.rds")
+s9_PEC_morph_obj_merge <- readRDS("s9_PEC_morph_obj_merge.rds")
+s10_PEC_morph_obj_merge <- readRDS("s10_PEC_morph_obj_merge.rds")
+s7_mesangial_morph_obj_merge <- readRDS("s7_mesangial_morph_obj_merge.rds")
+s8_mesangial_morph_obj_merge <- readRDS("s8_mesangial_morph_obj_merge.rds")
+s9_mesangial_morph_obj_merge <- readRDS("s9_mesangial_morph_obj_merge.rds")
+s10_mesangial_morph_obj_merge <- readRDS("s10_mesangial_morph_obj_merge.rds")
+s7_podocyte_morph_obj_merge  <- readRDS("s7_podocyte_morph_obj_merge.rds")
+s8_podocyte_morph_obj_merge  <- readRDS("s8_podocyte_morph_obj_merge.rds")
+s9_podocyte_morph_obj_merge  <- readRDS("s9_podocyte_morph_obj_merge.rds")
+s10_podocyte_morph_obj_merge <- readRDS("s10_podocyte_morph_obj_merge.rds")
+
+```
+
+## Correlation test between genes and PCs of morphomical features
+
+### ALL
+
+```{r, eval = F}
+#combine all samples gene matrices (normalized)
+assay_tmp <- "Spatial"
+s7_gene_data <- data.frame(s7_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s8_gene_data <- data.frame(s8_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s9_gene_data <- data.frame(s9_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s10_gene_data <- data.frame(s10_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+all_gene_data <- bind_cols(s7_gene_data, s8_gene_data, s9_gene_data, s10_gene_data)
+all_gene_data <- t(all_gene_data)
+all_meta_data <- bind_rows(s7_morph_obj_merge@meta.data, s8_morph_obj_merge@meta.data, s9_morph_obj_merge@meta.data, s10_morph_obj_merge@meta.data)
+
+types <- c("ALL", unique(testdata$FeatureType))
+
+pc.lst <- list()
+for(i in 1:length(types)){
+  type <- types[i]
+  N.pc <- ifelse(type %in% c("Granularity", "Intensity", "Neighbors"), 3, 5)
+  pc.colname <- paste0("PC_", seq(N.pc))
+  pc.id <- paste0(type, "_PCA")
+  s7.Npc.cell.embed <- data.frame(s7_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s7.Npc.cell.embed) <- paste(type, colnames(s7.Npc.cell.embed), sep = "_")
+  
+  s8.Npc.cell.embed <- data.frame(s8_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s8.Npc.cell.embed) <- paste(type, colnames(s8.Npc.cell.embed), sep = "_")
+  
+  s9.Npc.cell.embed <- data.frame(s9_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s9.Npc.cell.embed) <- paste(type, colnames(s9.Npc.cell.embed), sep = "_")
+  
+  s10.Npc.cell.embed <- data.frame(s10_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s10.Npc.cell.embed) <- paste(type, colnames(s10.Npc.cell.embed), sep = "_")
+  
+  all_cell_embed <- bind_rows(s7.Npc.cell.embed, s8.Npc.cell.embed, s9.Npc.cell.embed, s10.Npc.cell.embed)
+  pc.lst[[type]] <- all_cell_embed
+}
+
+all_cell_embed_type <- bind_cols(pc.lst)
+saveRDS(all_cell_embed_type, "all_cell_embed_type.rds")
+```
+
+```{r, eval = F}
+all_cell_embed_type <- readRDS("all_cell_embed_type.rds")
+#run cor test for each feature and gene
+all_gene_feature_cor <- list()
+for(i in 1:ncol(all_cell_embed_type)){
+  print(i)
+  res_lst <- list()
+  feature <- colnames(all_cell_embed_type)[i]
+  feature_sub <- all_cell_embed_type[,feature,drop = F]
+  for(j in 1:ncol(all_gene_data)) {
+    gene <- colnames(all_gene_data)[j]
+    gene_sub <- all_gene_data[,gene,drop=F]
+    mat <- cbind(feature_sub, gene_sub)
+    res <- suppressWarnings(cor.test(mat[,1], mat[,2],  method = "spearman", exact = FALSE))
+    res_lst[[j]] <- c(feature, gene, res$method, res$estimate, res$p.value)
+  }
+  res_feature_df <-  data.frame(do.call(rbind, res_lst))
+  colnames(res_feature_df) <- c("feature", "gene", "method", "estimate", "p.value")
+  res_feature_df$padj <- p.adjust(res_feature_df$p.value, method = "BH")
+  all_gene_feature_cor[[i]] <- res_feature_df
+}
+all_gene_feature_cor_df <- bind_rows(all_gene_feature_cor)
+all_gene_feature_cor_df <- all_gene_feature_cor_df %>%
+  arrange(padj,p.value)
+write_csv(all_gene_feature_cor_df, "all_gene_feature_cor_spearman.csv")
+
+```
+
+```{r}
+all_gene_feature_cor_df <- read.csv("all_gene_feature_cor_spearman.csv", header = T)
+
+all_gene_feature_cor_df %>%
+  slice_min(padj, n = 1000) %>%
+  DT::datatable(extensions = "Buttons", options = list(dom = "Bfrtip", buttons = c("excel", "csv")))
+```
+
+
+### PEC
+
+```{r, eval = F}
+#combine all samples gene matrices (normalized)
+assay_tmp <- "Spatial"
+s7_PEC_gene_data <- data.frame(s7_PEC_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s8_PEC_gene_data <- data.frame(s8_PEC_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s9_PEC_gene_data <- data.frame(s9_PEC_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s10_PEC_gene_data <- data.frame(s10_PEC_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+PEC_gene_data <- bind_cols(s7_PEC_gene_data, s8_PEC_gene_data, s9_PEC_gene_data, s10_PEC_gene_data)
+PEC_gene_data <- t(PEC_gene_data)
+PEC_meta_data <- bind_rows(s7_PEC_morph_obj_merge@meta.data, s8_PEC_morph_obj_merge@meta.data, s9_PEC_morph_obj_merge@meta.data, s10_PEC_morph_obj_merge@meta.data)
+
+types <- c("PEC", paste0("PEC_", unique(testdata$FeatureType)))
+
+pc.lst <- list()
+for(i in 1:length(types)){
+  type <- types[i]
+  N.pc <- ifelse(type %in% c("PEC_Granularity", "PEC_Intensity", "PEC_Neighbors"), 3, 5)
+  pc.colname <- paste0("PC_", seq(N.pc))
+  pc.id <- paste0(type, "_PCA")
+  s7.Npc.cell.embed <- data.frame(s7_PEC_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s7.Npc.cell.embed) <- paste(type, colnames(s7.Npc.cell.embed), sep = "_")
+  
+  s8.Npc.cell.embed <- data.frame(s8_PEC_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s8.Npc.cell.embed) <- paste(type, colnames(s8.Npc.cell.embed), sep = "_")
+  
+  s9.Npc.cell.embed <- data.frame(s9_PEC_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s9.Npc.cell.embed) <- paste(type, colnames(s9.Npc.cell.embed), sep = "_")
+  
+  s10.Npc.cell.embed <- data.frame(s10_PEC_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s10.Npc.cell.embed) <- paste(type, colnames(s10.Npc.cell.embed), sep = "_")
+  
+  PEC_cell_embed <- bind_rows(s7.Npc.cell.embed, s8.Npc.cell.embed, s9.Npc.cell.embed, s10.Npc.cell.embed)
+  pc.lst[[type]] <- PEC_cell_embed
+}
+
+PEC_cell_embed_type <- bind_cols(pc.lst)
+saveRDS(PEC_cell_embed_type, "PEC_cell_embed_type.rds")
+```
+
+```{r, eval = F}
+PEC_cell_embed_type <- readRDS("PEC_cell_embed_type.rds")
+#run cor test for each feature and gene
+PEC_gene_feature_cor <- list()
+for(i in 1:ncol(PEC_cell_embed_type)){
+  print(i)
+  res_lst <- list()
+  feature <- colnames(PEC_cell_embed_type)[i]
+  feature_sub <- PEC_cell_embed_type[,feature,drop = F]
+  for(j in 1:ncol(PEC_gene_data)) {
+    gene <- colnames(PEC_gene_data)[j]
+    gene_sub <- PEC_gene_data[,gene,drop=F]
+    mat <- cbind(feature_sub, gene_sub)
+    res <- suppressWarnings(cor.test(mat[,1], mat[,2],  method = "spearman", exact = FALSE))
+    res_lst[[j]] <- c(feature, gene, res$method, res$estimate, res$p.value)
+  }
+  res_feature_df <-  data.frame(do.call(rbind, res_lst))
+  colnames(res_feature_df) <- c("feature", "gene", "method", "estimate", "p.value")
+  res_feature_df$padj <- p.adjust(res_feature_df$p.value, method = "BH")
+  PEC_gene_feature_cor[[i]] <- res_feature_df
+}
+PEC_gene_feature_cor_df <- bind_rows(PEC_gene_feature_cor)
+PEC_gene_feature_cor_df <- PEC_gene_feature_cor_df %>%
+  arrange(padj,p.value)
+write_csv(PEC_gene_feature_cor_df, "PEC_gene_feature_cor_spearman.csv")
+
+```
+
+```{r}
+PEC_gene_feature_cor_df <- read.csv("PEC_gene_feature_cor_spearman.csv", header = T)
+
+PEC_gene_feature_cor_df %>%
+  slice_min(padj, n = 1000) %>%
+  DT::datatable(extensions = "Buttons", options = list(dom = "Bfrtip", buttons = c("excel", "csv")))
+```
+
+
+### mesangial
+
+```{r, eval = F}
+#combine all samples gene matrices (normalized)
+assay_tmp <- "Spatial"
+s7_mesangial_gene_data <- data.frame(s7_mesangial_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s8_mesangial_gene_data <- data.frame(s8_mesangial_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s9_mesangial_gene_data <- data.frame(s9_mesangial_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s10_mesangial_gene_data <- data.frame(s10_mesangial_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+mesangial_gene_data <- bind_cols(s7_mesangial_gene_data, s8_mesangial_gene_data, s9_mesangial_gene_data, s10_mesangial_gene_data)
+mesangial_gene_data <- t(mesangial_gene_data)
+mesangial_meta_data <- bind_rows(s7_mesangial_morph_obj_merge@meta.data, s8_mesangial_morph_obj_merge@meta.data, s9_mesangial_morph_obj_merge@meta.data, s10_mesangial_morph_obj_merge@meta.data)
+
+types <- c("mesangial", paste0("mesangial_", unique(testdata$FeatureType)))
+
+pc.lst <- list()
+for(i in 1:length(types)){
+  type <- types[i]
+  N.pc <- ifelse(type %in% c("mesangial_Granularity", "mesangial_Intensity", "mesangial_Neighbors"), 3, 5)
+  pc.colname <- paste0("PC_", seq(N.pc))
+  pc.id <- paste0(type, "_PCA")
+  s7.Npc.cell.embed <- data.frame(s7_mesangial_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s7.Npc.cell.embed) <- paste(type, colnames(s7.Npc.cell.embed), sep = "_")
+  
+  s8.Npc.cell.embed <- data.frame(s8_mesangial_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s8.Npc.cell.embed) <- paste(type, colnames(s8.Npc.cell.embed), sep = "_")
+  
+  s9.Npc.cell.embed <- data.frame(s9_mesangial_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s9.Npc.cell.embed) <- paste(type, colnames(s9.Npc.cell.embed), sep = "_")
+  
+  s10.Npc.cell.embed <- data.frame(s10_mesangial_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s10.Npc.cell.embed) <- paste(type, colnames(s10.Npc.cell.embed), sep = "_")
+  
+  mesangial_cell_embed <- bind_rows(s7.Npc.cell.embed, s8.Npc.cell.embed, s9.Npc.cell.embed, s10.Npc.cell.embed)
+  pc.lst[[type]] <- mesangial_cell_embed
+}
+
+mesangial_cell_embed_type <- bind_cols(pc.lst)
+saveRDS(mesangial_cell_embed_type, "mesangial_cell_embed_type.rds")
+```
+
+```{r, eval = F}
+mesangial_cell_embed_type <- readRDS("mesangial_cell_embed_type.rds")
+#run cor test for each feature and gene
+mesangial_gene_feature_cor <- list()
+for(i in 1:ncol(mesangial_cell_embed_type)){
+  print(i)
+  res_lst <- list()
+  feature <- colnames(mesangial_cell_embed_type)[i]
+  feature_sub <- mesangial_cell_embed_type[,feature,drop = F]
+  for(j in 1:ncol(mesangial_gene_data)) {
+    gene <- colnames(mesangial_gene_data)[j]
+    gene_sub <- mesangial_gene_data[,gene,drop=F]
+    mat <- cbind(feature_sub, gene_sub)
+    res <- suppressWarnings(cor.test(mat[,1], mat[,2],  method = "spearman", exact = FALSE))
+    res_lst[[j]] <- c(feature, gene, res$method, res$estimate, res$p.value)
+  }
+  res_feature_df <-  data.frame(do.call(rbind, res_lst))
+  colnames(res_feature_df) <- c("feature", "gene", "method", "estimate", "p.value")
+  res_feature_df$padj <- p.adjust(res_feature_df$p.value, method = "BH")
+  mesangial_gene_feature_cor[[i]] <- res_feature_df
+}
+mesangial_gene_feature_cor_df <- bind_rows(mesangial_gene_feature_cor)
+mesangial_gene_feature_cor_df <- mesangial_gene_feature_cor_df %>%
+  arrange(padj,p.value)
+write_csv(mesangial_gene_feature_cor_df, "mesangial_gene_feature_cor_spearman.csv")
+
+```
+
+```{r}
+mesangial_gene_feature_cor_df <- read.csv("mesangial_gene_feature_cor_spearman.csv", header = T)
+
+mesangial_gene_feature_cor_df %>%
+  slice_min(padj, n = 1000) %>%
+  DT::datatable(extensions = "Buttons", options = list(dom = "Bfrtip", buttons = c("excel", "csv")))
+```
+
+
+
+### podocyte
+
+```{r, eval = F}
+#combine all samples gene matrices (normalized)
+assay_tmp <- "Spatial"
+s7_podocyte_gene_data <- data.frame(s7_podocyte_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s8_podocyte_gene_data <- data.frame(s8_podocyte_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s9_podocyte_gene_data <- data.frame(s9_podocyte_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+s10_podocyte_gene_data <- data.frame(s10_podocyte_morph_obj_merge@assays[[assay_tmp]]@data, check.names = F)
+podocyte_gene_data <- bind_cols(s7_podocyte_gene_data, s8_podocyte_gene_data, s9_podocyte_gene_data, s10_podocyte_gene_data)
+podocyte_gene_data <- t(podocyte_gene_data)
+podocyte_meta_data <- bind_rows(s7_podocyte_morph_obj_merge@meta.data, s8_podocyte_morph_obj_merge@meta.data, s9_podocyte_morph_obj_merge@meta.data, s10_podocyte_morph_obj_merge@meta.data)
+
+types <- c("podocyte", paste0("podocyte_", unique(testdata$FeatureType)))
+
+pc.lst <- list()
+for(i in 1:length(types)){
+  type <- types[i]
+  N.pc <- ifelse(type %in% c("podocyte_Granularity", "podocyte_Intensity", "podocyte_Neighbors"), 3, 5)
+  pc.colname <- paste0("PC_", seq(N.pc))
+  pc.id <- paste0(type, "_PCA")
+  s7.Npc.cell.embed <- data.frame(s7_podocyte_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s7.Npc.cell.embed) <- paste(type, colnames(s7.Npc.cell.embed), sep = "_")
+  
+  s8.Npc.cell.embed <- data.frame(s8_podocyte_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s8.Npc.cell.embed) <- paste(type, colnames(s8.Npc.cell.embed), sep = "_")
+  
+  s9.Npc.cell.embed <- data.frame(s9_podocyte_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s9.Npc.cell.embed) <- paste(type, colnames(s9.Npc.cell.embed), sep = "_")
+  
+  s10.Npc.cell.embed <- data.frame(s10_podocyte_morph_obj_merge@reductions[[pc.id]]@cell.embeddings[,pc.colname], check.names = F)
+  colnames(s10.Npc.cell.embed) <- paste(type, colnames(s10.Npc.cell.embed), sep = "_")
+  
+  podocyte_cell_embed <- bind_rows(s7.Npc.cell.embed, s8.Npc.cell.embed, s9.Npc.cell.embed, s10.Npc.cell.embed)
+  pc.lst[[type]] <- podocyte_cell_embed
+}
+
+podocyte_cell_embed_type <- bind_cols(pc.lst)
+saveRDS(podocyte_cell_embed_type, "podocyte_cell_embed_type.rds")
+```
+
+```{r, eval = F}
+podocyte_cell_embed_type <- readRDS("podocyte_cell_embed_type.rds")
+#run cor test for each feature and gene
+podocyte_gene_feature_cor <- list()
+for(i in 1:ncol(podocyte_cell_embed_type)){
+  print(i)
+  res_lst <- list()
+  feature <- colnames(podocyte_cell_embed_type)[i]
+  feature_sub <- podocyte_cell_embed_type[,feature,drop = F]
+  for(j in 1:ncol(podocyte_gene_data)) {
+    gene <- colnames(podocyte_gene_data)[j]
+    gene_sub <- podocyte_gene_data[,gene,drop=F]
+    mat <- cbind(feature_sub, gene_sub)
+    res <- suppressWarnings(cor.test(mat[,1], mat[,2],  method = "spearman", exact = FALSE))
+    res_lst[[j]] <- c(feature, gene, res$method, res$estimate, res$p.value)
+  }
+  res_feature_df <-  data.frame(do.call(rbind, res_lst))
+  colnames(res_feature_df) <- c("feature", "gene", "method", "estimate", "p.value")
+  res_feature_df$padj <- p.adjust(res_feature_df$p.value, method = "BH")
+  podocyte_gene_feature_cor[[i]] <- res_feature_df
+}
+podocyte_gene_feature_cor_df <- bind_rows(podocyte_gene_feature_cor)
+podocyte_gene_feature_cor_df <- podocyte_gene_feature_cor_df %>%
+  arrange(padj,p.value)
+write_csv(podocyte_gene_feature_cor_df, "podocyte_gene_feature_cor_spearman.csv")
+
+```
+
+```{r}
+podocyte_gene_feature_cor_df <- read.csv("podocyte_gene_feature_cor_spearman.csv", header = T)
+
+podocyte_gene_feature_cor_df %>%
+  slice_min(padj, n = 1000) %>%
+  DT::datatable(extensions = "Buttons", options = list(dom = "Bfrtip", buttons = c("excel", "csv")))
+```
+
+
+
+
+
+
+

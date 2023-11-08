@@ -19,6 +19,7 @@ ReadMorphomicFeatures=function(metaTable) {
                                           featuresToMetaTable$ImageNumber,
                                           "_",
                                           featuresToMetaTable$ObjectNumber)
+    row.names(featuresToMetaTable)=str_replace_all(row.names(featuresToMetaTable), "_", "-")
 
     featureTableData=featureTable[,-c(1:2,featuresToMetaInd+2)]
     colnames(featureTableData)=make.names(gsub("^[A-Za-z]+_","",colnames(featureTableData)))
@@ -48,7 +49,7 @@ MorphomicFeaturesNormlization=function(featureDataAll,nUnique=10,CellType=NULL,S
 
   dataTableFiltered=dataTable
 
-  print("Remove variables less than 10 unique values")
+  print(paste0("Remove variables less than ", nUnique, " unique values"))
   temp=apply(dataTable,2,function(x) length(unique(x)))
   featuresToRemoveInd=which(temp<=nUnique)
   if (length(featuresToRemoveInd)>0) {
