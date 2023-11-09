@@ -27,7 +27,7 @@ PrepareFeaturesSeuratObj <- function(featureData,
   if(!is.null(subset)){
     meta <- meta[which(rownames(meta) %in% subset),]
     countTable <- countTable[which(rownames(countTable) %in% subset),]
-    countTable.norm <- countTable[which(rownames(countTable.norm) %in% subset),]
+    countTable.norm <- countTable.norm[which(rownames(countTable.norm) %in% subset),]
     positionTable <- positionTable[which(rownames(positionTable) %in% subset),]
     cell_emb <- cell_emb[which(rownames(cell_emb) %in% subset),]
   }
@@ -202,6 +202,7 @@ MergeObjects <- function(object1,
     new.mtx2.norm <- MergeMatrices(mtx1, mtx2.norm, mergeTable)
     object@assays[[slot2]] <- CreateAssayObject(counts = new.mtx2[[2]])
     object@assays[[slot2]]@data <- new.mtx2.norm[[2]]
+    Key(object@assays[[slot2]]) <- Key(object2@assays[[slot2]])
   }
   for(i in 1:length(pca_slots)){
     pca.slot2 <- pca_slots[i]

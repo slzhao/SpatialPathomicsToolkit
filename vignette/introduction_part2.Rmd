@@ -58,6 +58,7 @@ library(knitr)
 library(tidyverse)
 library(Seurat)
 library(DT)
+library(patchwork)
 library(png)
 ```
 
@@ -401,9 +402,11 @@ s10_podocyte_morph_obj <- readRDS("s10_podocyte_morph_obj.rds")
 
 ## Visualization of first N PCs of each feature types
 
-```{r, eval = F}
-types <- c("ALL", unique(testdata$FeatureType))
+### ALL
 
+```{r, eval = F}
+types <- c("ALL", unique(featureDataAllNormlized$FeatureType))
+feature.plts <- list()
 for(i in 1:length(types)){
   type <- types[i]
   N.pc <- ifelse(type %in% c("Granularity", "Intensity", "Neighbors"), 3, 5)
@@ -426,17 +429,280 @@ for(i in 1:length(types)){
   
   for(j in 1:N.pc) {
     feature.id <- paste0(type, "_PC_", j)
-    DefaultAssay(s7_morph_obj) <- "MorphologicFeature"
     s7.feature.plt <- SpatialFeaturePlot(s7_morph_obj, 
                                          features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
                                          alpha = 0.6,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s7 ", type, " PC", j))
-    
+    s8.feature.plt <- SpatialFeaturePlot(s8_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s8 ", type, " PC", j))
+    s9.feature.plt <- SpatialFeaturePlot(s9_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s9 ", type, " PC", j))
+    s10.feature.plt <- SpatialFeaturePlot(s10_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s10 ", type, " PC", j))
+    feature.plts[[paste0("s7_", feature.id)]] <- s7.feature.plt
+    feature.plts[[paste0("s8_", feature.id)]] <- s8.feature.plt
+    feature.plts[[paste0("s9_", feature.id)]] <- s9.feature.plt
+    feature.plts[[paste0("s10_", feature.id)]] <- s10.feature.plt
   }
 }
+saveRDS(feature.plts,"all.feature.plts.rds")
 
 ```
+
+```{r, fig.width=12, fig.height=87}
+feature.plts <- readRDS("all.feature.plts.rds")
+wrap_plots(plots = feature.plts, ncol = 4)
+```
+
+
+### PEC
+
+```{r, eval = F}
+types <- c("PEC", paste0("PEC_", unique(featureDataAllNormlized$FeatureType)))
+PEC.feature.plts <- list()
+for(i in 1:length(types)){
+  type <- types[i]
+  N.pc <- ifelse(type %in% c("PEC_Granularity", "PEC_Intensity", "PEC_Neighbors"), 3, 5)
+  pc.id <- paste0(type, "_PCA")
+  s7.Npc.cell.embed <- s7_PEC_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s7.Npc.cell.embed) <- paste(type, colnames(s7.Npc.cell.embed), sep = "_")
+  s7_PEC_morph_obj@meta.data <- cbind(s7_PEC_morph_obj@meta.data, s7.Npc.cell.embed)
+  
+  s8.Npc.cell.embed <- s8_PEC_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s8.Npc.cell.embed) <- paste(type, colnames(s8.Npc.cell.embed), sep = "_")
+  s8_PEC_morph_obj@meta.data <- cbind(s8_PEC_morph_obj@meta.data, s8.Npc.cell.embed)
+  
+  s9.Npc.cell.embed <- s9_PEC_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s9.Npc.cell.embed) <- paste(type, colnames(s9.Npc.cell.embed), sep = "_")
+  s9_PEC_morph_obj@meta.data <- cbind(s9_PEC_morph_obj@meta.data, s9.Npc.cell.embed)
+  
+  s10.Npc.cell.embed <- s10_PEC_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s10.Npc.cell.embed) <- paste(type, colnames(s10.Npc.cell.embed), sep = "_")
+  s10_PEC_morph_obj@meta.data <- cbind(s10_PEC_morph_obj@meta.data, s10.Npc.cell.embed)
+  
+  for(j in 1:N.pc) {
+    feature.id <- paste0(type, "_PC_", j)
+    s7.feature.plt <- SpatialFeaturePlot(s7_PEC_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s7 ", type, " PC", j))
+    s8.feature.plt <- SpatialFeaturePlot(s8_PEC_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s8 ", type, " PC", j))
+    s9.feature.plt <- SpatialFeaturePlot(s9_PEC_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s9 ", type, " PC", j))
+    s10.feature.plt <- SpatialFeaturePlot(s10_PEC_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s10 ", type, " PC", j))
+    PEC.feature.plts[[paste0("s7_", feature.id)]] <- s7.feature.plt
+    PEC.feature.plts[[paste0("s8_", feature.id)]] <- s8.feature.plt
+    PEC.feature.plts[[paste0("s9_", feature.id)]] <- s9.feature.plt
+    PEC.feature.plts[[paste0("s10_", feature.id)]] <- s10.feature.plt
+  }
+}
+saveRDS(PEC.feature.plts,"PEC.feature.plts.rds")
+
+```
+
+```{r, fig.width=12, fig.height=87}
+PEC.feature.plts <- readRDS("PEC.feature.plts.rds")
+wrap_plots(plots = PEC.feature.plts, ncol = 4)
+```
+
+
+### mesangial
+
+```{r, eval = F}
+types <- c("mesangial", paste0("mesangial_", unique(featureDataAllNormlized$FeatureType)))
+mesangial.feature.plts <- list()
+for(i in 1:length(types)){
+  type <- types[i]
+  N.pc <- ifelse(type %in% c("mesangial_Granularity", "mesangial_Intensity", "mesangial_Neighbors"), 3, 5)
+  pc.id <- paste0(type, "_PCA")
+  s7.Npc.cell.embed <- s7_mesangial_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s7.Npc.cell.embed) <- paste(type, colnames(s7.Npc.cell.embed), sep = "_")
+  s7_mesangial_morph_obj@meta.data <- cbind(s7_mesangial_morph_obj@meta.data, s7.Npc.cell.embed)
+  
+  s8.Npc.cell.embed <- s8_mesangial_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s8.Npc.cell.embed) <- paste(type, colnames(s8.Npc.cell.embed), sep = "_")
+  s8_mesangial_morph_obj@meta.data <- cbind(s8_mesangial_morph_obj@meta.data, s8.Npc.cell.embed)
+  
+  s9.Npc.cell.embed <- s9_mesangial_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s9.Npc.cell.embed) <- paste(type, colnames(s9.Npc.cell.embed), sep = "_")
+  s9_mesangial_morph_obj@meta.data <- cbind(s9_mesangial_morph_obj@meta.data, s9.Npc.cell.embed)
+  
+  s10.Npc.cell.embed <- s10_mesangial_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s10.Npc.cell.embed) <- paste(type, colnames(s10.Npc.cell.embed), sep = "_")
+  s10_mesangial_morph_obj@meta.data <- cbind(s10_mesangial_morph_obj@meta.data, s10.Npc.cell.embed)
+  
+  for(j in 1:N.pc) {
+    feature.id <- paste0(type, "_PC_", j)
+    s7.feature.plt <- SpatialFeaturePlot(s7_mesangial_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s7 ", type, " PC", j))
+    s8.feature.plt <- SpatialFeaturePlot(s8_mesangial_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s8 ", type, " PC", j))
+    s9.feature.plt <- SpatialFeaturePlot(s9_mesangial_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s9 ", type, " PC", j))
+    s10.feature.plt <- SpatialFeaturePlot(s10_mesangial_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s10 ", type, " PC", j))
+    mesangial.feature.plts[[paste0("s7_", feature.id)]] <- s7.feature.plt
+    mesangial.feature.plts[[paste0("s8_", feature.id)]] <- s8.feature.plt
+    mesangial.feature.plts[[paste0("s9_", feature.id)]] <- s9.feature.plt
+    mesangial.feature.plts[[paste0("s10_", feature.id)]] <- s10.feature.plt
+  }
+}
+saveRDS(mesangial.feature.plts,"mesangial.feature.plts.rds")
+
+```
+
+```{r, fig.width=12, fig.height=87}
+mesangial.feature.plts <- readRDS("mesangial.feature.plts.rds")
+wrap_plots(plots = mesangial.feature.plts, ncol = 4)
+```
+
+
+### podocyte
+
+```{r, eval = F}
+types <- c("podocyte", paste0("podocyte_", unique(featureDataAllNormlized$FeatureType)))
+podocyte.feature.plts <- list()
+for(i in 1:length(types)){
+  type <- types[i]
+  N.pc <- ifelse(type %in% c("podocyte_Granularity", "podocyte_Intensity", "podocyte_Neighbors"), 3, 5)
+  pc.id <- paste0(type, "_PCA")
+  s7.Npc.cell.embed <- s7_podocyte_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s7.Npc.cell.embed) <- paste(type, colnames(s7.Npc.cell.embed), sep = "_")
+  s7_podocyte_morph_obj@meta.data <- cbind(s7_podocyte_morph_obj@meta.data, s7.Npc.cell.embed)
+  
+  s8.Npc.cell.embed <- s8_podocyte_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s8.Npc.cell.embed) <- paste(type, colnames(s8.Npc.cell.embed), sep = "_")
+  s8_podocyte_morph_obj@meta.data <- cbind(s8_podocyte_morph_obj@meta.data, s8.Npc.cell.embed)
+  
+  s9.Npc.cell.embed <- s9_podocyte_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s9.Npc.cell.embed) <- paste(type, colnames(s9.Npc.cell.embed), sep = "_")
+  s9_podocyte_morph_obj@meta.data <- cbind(s9_podocyte_morph_obj@meta.data, s9.Npc.cell.embed)
+  
+  s10.Npc.cell.embed <- s10_podocyte_morph_obj@reductions[[pc.id]]@cell.embeddings[,1:N.pc]
+  colnames(s10.Npc.cell.embed) <- paste(type, colnames(s10.Npc.cell.embed), sep = "_")
+  s10_podocyte_morph_obj@meta.data <- cbind(s10_podocyte_morph_obj@meta.data, s10.Npc.cell.embed)
+  
+  for(j in 1:N.pc) {
+    feature.id <- paste0(type, "_PC_", j)
+    s7.feature.plt <- SpatialFeaturePlot(s7_podocyte_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s7 ", type, " PC", j))
+    s8.feature.plt <- SpatialFeaturePlot(s8_podocyte_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s8 ", type, " PC", j))
+    s9.feature.plt <- SpatialFeaturePlot(s9_podocyte_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s9 ", type, " PC", j))
+    s10.feature.plt <- SpatialFeaturePlot(s10_podocyte_morph_obj, 
+                                         features = feature.id, 
+                                         crop = F,
+                                         pt.size.factor = 0.2,
+                                         stroke = 0.1,
+                                         alpha = 0.6,
+                                         image.alpha = 0.4) +
+      ggtitle(paste0("s10 ", type, " PC", j))
+    podocyte.feature.plts[[paste0("s7_", feature.id)]] <- s7.feature.plt
+    podocyte.feature.plts[[paste0("s8_", feature.id)]] <- s8.feature.plt
+    podocyte.feature.plts[[paste0("s9_", feature.id)]] <- s9.feature.plt
+    podocyte.feature.plts[[paste0("s10_", feature.id)]] <- s10.feature.plt
+  }
+}
+saveRDS(podocyte.feature.plts,"podocyte.feature.plts.rds")
+
+```
+
+```{r, fig.width=12, fig.height=87}
+podocyte.feature.plts <- readRDS("podocyte.feature.plts.rds")
+wrap_plots(plots = podocyte.feature.plts, ncol = 4)
+```
+
+
+
 
 ## Merge gene and morphomical feature objects at spot level
 
