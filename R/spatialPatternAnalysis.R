@@ -125,8 +125,8 @@ PrepareFeaturesSeuratObjVisium <- function(featureData,
   }
   img <- st.object@images[[image.id]]@image
   scalefactors <- st.object@images[[image.id]]@scale.factors
-  spot.radius <- st.object@images[[image.id]]@scale.factors$spot
-  patch.scale.factor <- patch.size / (2 * spot.radius)
+  spot.radius <- st.object@images[[image.id]]@spot.radius
+  patch.scale.factor <- patch.size / (2 * scalefactors$spot)
 
   colnames(matchTable) <- c("V1", "V2")
   #prepare coordinates

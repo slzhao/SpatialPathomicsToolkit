@@ -59,6 +59,7 @@ library(tidyverse)
 library(Seurat)
 library(DT)
 library(patchwork)
+library(Cairo)
 library(png)
 ```
 
@@ -128,6 +129,7 @@ s7_gene_seurat <- NormalizeData(s7_gene_seurat, verbose = FALSE, assay = "Spatia
 s7_new_cellids <- paste0("DT-AF-7-", Cells(s7_gene_seurat))
 s7_gene_seurat <- RenameCells(s7_gene_seurat, new.names = s7_new_cellids)
 s7_gene_seurat$ID <- s7_new_cellids
+s7_gene_seurat@images$slice1@scale.factors$spot <- round(65.05427762176929, 4)
 
 s8_gene_seurat <- Load10X_Spatial(data.dir = "/nobackup/h_vangard_1/wangy67/PI_Yang/SpatialPathomics/temp/6793-AF-8/")
 s8_gene_seurat <- SCTransform(s8_gene_seurat, assay = "Spatial", variable.features.n = 5000, verbose = FALSE, return.only.var.genes = T)
@@ -135,6 +137,7 @@ s8_gene_seurat <- NormalizeData(s8_gene_seurat, verbose = FALSE, assay = "Spatia
 s8_new_cellids <- paste0("DT-AF-8-", Cells(s8_gene_seurat))
 s8_gene_seurat <- RenameCells(s8_gene_seurat, new.names = s8_new_cellids)
 s8_gene_seurat$ID <- s8_new_cellids
+s8_gene_seurat@images$slice1@scale.factors$spot <- round(65.03007058547087, 4)
 
 s9_gene_seurat <- Load10X_Spatial(data.dir = "/nobackup/h_vangard_1/wangy67/PI_Yang/SpatialPathomics/temp/6793-AF-9/")
 s9_gene_seurat <- SCTransform(s9_gene_seurat, assay = "Spatial", variable.features.n = 5000, verbose = FALSE, return.only.var.genes = T)
@@ -142,6 +145,7 @@ s9_gene_seurat <- NormalizeData(s9_gene_seurat, verbose = FALSE, assay = "Spatia
 s9_new_cellids <- paste0("Normal-AF-9-", Cells(s9_gene_seurat))
 s9_gene_seurat <- RenameCells(s9_gene_seurat, new.names = s9_new_cellids)
 s9_gene_seurat$ID <- s9_new_cellids
+s9_gene_seurat@images$slice1@scale.factors$spot <- round(65.06443835594425, 4)
 
 s10_gene_seurat <- Load10X_Spatial(data.dir = "/nobackup/h_vangard_1/wangy67/PI_Yang/SpatialPathomics/temp/6793-AF-10/")
 s10_gene_seurat <- SCTransform(s10_gene_seurat, assay = "Spatial", variable.features.n = 5000, verbose = FALSE, return.only.var.genes = T)
@@ -149,6 +153,7 @@ s10_gene_seurat <- NormalizeData(s10_gene_seurat, verbose = FALSE, assay = "Spat
 s10_new_cellids <- paste0("Normal-AF-10-", Cells(s10_gene_seurat))
 s10_gene_seurat <- RenameCells(s10_gene_seurat, new.names = s10_new_cellids)
 s10_gene_seurat$ID <- s10_new_cellids
+s10_gene_seurat@images$slice1@scale.factors$spot <- round(65.04145194525437, 4)
 
 ```
 
@@ -407,6 +412,8 @@ s10_podocyte_morph_obj <- readRDS("s10_podocyte_morph_obj.rds")
 ```{r, eval = F}
 types <- c("ALL", unique(featureDataAllNormlized$FeatureType))
 feature.plts <- list()
+pt.size.factor <- 0.4
+alpha <- 0.8
 for(i in 1:length(types)){
   type <- types[i]
   N.pc <- ifelse(type %in% c("Granularity", "Intensity", "Neighbors"), 3, 5)
@@ -432,33 +439,33 @@ for(i in 1:length(types)){
     s7.feature.plt <- SpatialFeaturePlot(s7_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s7 ", type, " PC", j))
     s8.feature.plt <- SpatialFeaturePlot(s8_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s8 ", type, " PC", j))
     s9.feature.plt <- SpatialFeaturePlot(s9_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s9 ", type, " PC", j))
     s10.feature.plt <- SpatialFeaturePlot(s10_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s10 ", type, " PC", j))
     feature.plts[[paste0("s7_", feature.id)]] <- s7.feature.plt
@@ -482,6 +489,7 @@ wrap_plots(plots = feature.plts, ncol = 4)
 ```{r, eval = F}
 types <- c("PEC", paste0("PEC_", unique(featureDataAllNormlized$FeatureType)))
 PEC.feature.plts <- list()
+
 for(i in 1:length(types)){
   type <- types[i]
   N.pc <- ifelse(type %in% c("PEC_Granularity", "PEC_Intensity", "PEC_Neighbors"), 3, 5)
@@ -507,33 +515,33 @@ for(i in 1:length(types)){
     s7.feature.plt <- SpatialFeaturePlot(s7_PEC_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s7 ", type, " PC", j))
     s8.feature.plt <- SpatialFeaturePlot(s8_PEC_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s8 ", type, " PC", j))
     s9.feature.plt <- SpatialFeaturePlot(s9_PEC_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s9 ", type, " PC", j))
     s10.feature.plt <- SpatialFeaturePlot(s10_PEC_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s10 ", type, " PC", j))
     PEC.feature.plts[[paste0("s7_", feature.id)]] <- s7.feature.plt
@@ -582,33 +590,33 @@ for(i in 1:length(types)){
     s7.feature.plt <- SpatialFeaturePlot(s7_mesangial_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s7 ", type, " PC", j))
     s8.feature.plt <- SpatialFeaturePlot(s8_mesangial_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s8 ", type, " PC", j))
     s9.feature.plt <- SpatialFeaturePlot(s9_mesangial_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s9 ", type, " PC", j))
     s10.feature.plt <- SpatialFeaturePlot(s10_mesangial_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s10 ", type, " PC", j))
     mesangial.feature.plts[[paste0("s7_", feature.id)]] <- s7.feature.plt
@@ -657,33 +665,33 @@ for(i in 1:length(types)){
     s7.feature.plt <- SpatialFeaturePlot(s7_podocyte_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s7 ", type, " PC", j))
     s8.feature.plt <- SpatialFeaturePlot(s8_podocyte_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s8 ", type, " PC", j))
     s9.feature.plt <- SpatialFeaturePlot(s9_podocyte_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s9 ", type, " PC", j))
     s10.feature.plt <- SpatialFeaturePlot(s10_podocyte_morph_obj, 
                                          features = feature.id, 
                                          crop = F,
-                                         pt.size.factor = 0.2,
+                                         pt.size.factor = pt.size.factor,
                                          stroke = 0.1,
-                                         alpha = 0.6,
+                                         alpha = alpha,
                                          image.alpha = 0.4) +
       ggtitle(paste0("s10 ", type, " PC", j))
     podocyte.feature.plts[[paste0("s7_", feature.id)]] <- s7.feature.plt
